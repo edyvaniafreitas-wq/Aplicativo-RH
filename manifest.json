@@ -1,0 +1,21 @@
+{
+  "name": "Monte Sua Equipe",
+  "short_name": "MonteEquipe",
+  "description": "Plataforma de Conexão entre Profissionais, Empresas e Gestão de RH. Idealizado por Edvania Freitas.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F7FAFF",
+  "theme_color": "#2459CF",
+  "icons": [
+    {
+      "src": "assets/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "assets/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

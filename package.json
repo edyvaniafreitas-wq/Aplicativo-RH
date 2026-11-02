@@ -1,0 +1,14 @@
+{
+  "name": "monte-sua-equipe-rh",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Monte Sua Equipe — Plataforma de Conexão entre Profissionais, Empresas e Gestão de RH. Idealizado por Edvania Freitas.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^5.4.14"
+  }
+}

@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monte Sua Equipe • Plataforma Executiva de Conexão Profissional & RH</title>
+  <meta name="description" content="Monte Sua Equipe — Plataforma gratuita de conexão entre profissionais, empresas e gestão de pessoas. Idealizado por Edvania Freitas (@ampliaperformance).">
+
+  <!-- Google Fonts: Bricolage Grotesque, Source Sans 3 & IBM Plex Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+
+  <!-- Lucide Icons via CDN -->
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+
+  <!-- CSS Design System -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body data-theme="light">
+
+  <!-- Cabeçalho Principal -->
+  <header class="app-header">
+    <div class="app-container">
+      <div class="header-content">
+        
+        <!-- Logotipo e Identidade da Marca -->
+        <a class="brand-group" id="btnGoHome" title="Página Inicial do Monte Sua Equipe">
+          <div class="brand-icon-box">
+            <i data-lucide="users"></i>
+          </div>
+          <div class="brand-text">
+            <h1>Monte Sua Equipe</h1>
+            <span>Gente que conecta • Por Edvania Freitas</span>
+          </div>
+        </a>
+
+        <!-- Alternador Rápido de Papéis (Demonstração & Produção) -->
+        <div class="role-switcher-badge" title="Alternar visão de demonstração do aplicativo">
+          <button class="role-tab-btn" data-role="candidate" id="btnRoleCandidate">
+            <i data-lucide="user"></i>
+            <span>Profissional</span>
+          </button>
+          <button class="role-tab-btn active" data-role="recruiter" id="btnRoleRecruiter">
+            <i data-lucide="building-2"></i>
+            <span>Empresa / RH</span>
+          </button>
+          <button class="role-tab-btn" data-role="admin" id="btnRoleAdmin">
+            <i data-lucide="shield-check"></i>
+            <span>Administradora</span>
+          </button>
+        </div>
+
+        <!-- Ações do Topo: Tema Escuro/Claro & Informações -->
+        <div class="header-actions">
+          <button class="btn-icon-round" id="btnToggleTheme" title="Alternar Modo Claro / Escuro">
+            <i data-lucide="moon"></i>
+          </button>
+          <button class="btn-icon-round" id="btnOpenPrivacyTerms" title="Termos de Privacidade & LGPD">
+            <i data-lucide="lock"></i>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- Sub-Navegação de Abas Dinâmica por Papel -->
+  <nav class="sub-nav-bar">
+    <div class="app-container">
+      <div class="nav-tabs-wrapper" id="navTabsContainer">
+        <!-- Renderizado dinamicamente pelo JavaScript de acordo com o papel ativo -->
+      </div>
+    </div>
+  </nav>
+
+  <!-- Conteúdo Principal Dinâmico -->
+  <main class="app-container" style="flex: 1; padding-top: 20px; padding-bottom: 50px;">
+    
+    <!-- Alerta Global de Aprovações Pendentes (Visível quando houver) -->
+    <div id="pendingApprovalAlert" style="display: none; margin-bottom: 20px;" class="traffic-light-badge light-red">
+      <div class="light-dots-cluster">
+        <span class="light-dot dot-red"></span>
+        <span class="light-dot dot-yellow"></span>
+        <span class="light-dot dot-green"></span>
+      </div>
+      <span id="pendingApprovalText">Cadastros de empresas aguardando aprovação da administradora.</span>
+    </div>
+
+    <!-- ÁREA DINÂMICA DE VISÕES -->
+    <div id="viewContainer">
+      <!-- As telas serão injetadas ou alternadas aqui -->
+    </div>
+
+  </main>
+
+  <!-- Rodapé Institucional Conforme Requisitos -->
+  <footer class="app-footer">
+    <div class="app-container">
+      <p><strong>Monte Sua Equipe</strong> • Conexão entre profissionais e empresas • Gratuito para todos • Idealizado por <strong>Edvania Freitas</strong> (@ampliaperformance)</p>
+      <div class="footer-links">
+        <a onclick="window.appController.openPrivacyModal()">Privacidade & Conformidade LGPD</a>
+        <span>•</span>
+        <a onclick="window.appController.openDiscScienceModal()">Base Científica do DISC</a>
+        <span>•</span>
+        <a href="https://instagram.com/ampliaperformance" target="_blank" rel="noopener noreferrer">@ampliaperformance</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==============================================
+       MODAIS DO SISTEMA
+       ============================================== -->
+
+  <!-- Modal: Termos & Conformidade LGPD -->
+  <div class="modal-backdrop" id="modalPrivacy">
+    <div class="modal-dialog">
+      <button class="modal-close-btn" onclick="document.getElementById('modalPrivacy').classList.remove('show');">&times;</button>
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+        <div class="brand-icon-box" style="width: 38px; height: 38px; font-size: 1rem;"><i data-lucide="shield-check"></i></div>
+        <h2>Termos de Uso & Privacidade (LGPD)</h2>
+      </div>
+      
+      <div style="font-size: 0.92rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 12px; line-height: 1.6;">
+        <p><strong>1. Finalidade Exclusiva:</strong> Conectar profissionais a oportunidades de trabalho e permitir que empresas e consultorias de RH encontrem talentos de forma transparente, acolhedora e ética.</p>
+        <p><strong>2. Dados Tratados & Minimização:</strong> São tratados unicamente dados profissionais públicos fornecidos espontaneamente. Números de documentos pessoais (como CPF e RG) são <em>automaticamente removidos</em> no momento da leitura do currículo e não são gravados em nossos bancos.</p>
+        <p><strong>3. Base Legal:</strong> Consentimento livre e informado do titular (Art. 7º, I da Lei 13.709/2018 - LGPD).</p>
+        <p><strong>4. Quem visualiza seus dados:</strong> Somente empresas e recrutadores com cadastros devidamente aprovados. Cada busca realizada é registrada com o motivo justificado em relatórios de auditoria.</p>
+        <p><strong>5. Menores de 18 Anos:</strong> A inclusão de dados de menores (14 a 17 anos) requer consentimento formal e nome do responsável legal (Art. 14 da LGPD).</p>
+        <p><strong>6. Proibição de Discriminação:</strong> Em cumprimento à Lei Federal nº 9.029/1995, é vedada qualquer prática discriminatória por motivo de idade, gênero, raça ou origem para efeito de contratação.</p>
+        <p><strong>7. Direitos do Titular (Art. 18):</strong> Você pode a qualquer momento exportar cópia integral dos seus dados ou solicitar a exclusão irrevogável de sua conta diretamente nas configurações do seu perfil.</p>
+      </div>
+
+      <div style="margin-top: 24px; text-align: right;">
+        <button class="btn-primary" onclick="document.getElementById('modalPrivacy').classList.remove('show');">Compreendido</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Base Científica DISC -->
+  <div class="modal-backdrop" id="modalDiscScience">
+    <div class="modal-dialog">
+      <button class="modal-close-btn" onclick="document.getElementById('modalDiscScience').classList.remove('show');">&times;</button>
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+        <div class="brand-icon-box" style="width: 38px; height: 38px; font-size: 1rem; background: var(--lilac-accent);"><i data-lucide="book-open"></i></div>
+        <h2>Base Científica e Diretrizes Éticas do DISC</h2>
+      </div>
+
+      <div id="discScienceBody" style="font-size: 0.92rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 14px; line-height: 1.6;">
+        <!-- Injetado dinamicamente -->
+      </div>
+
+      <div style="margin-top: 24px; text-align: right;">
+        <button class="btn-primary" onclick="document.getElementById('modalDiscScience').classList.remove('show');">Entendi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Agendamento de Entrevista & Convite Pronto -->
+  <div class="modal-backdrop" id="modalScheduleInterview">
+    <div class="modal-dialog" style="max-width: 680px;">
+      <button class="modal-close-btn" onclick="document.getElementById('modalScheduleInterview').classList.remove('show');">&times;</button>
+      
+      <div id="scheduleFormSection">
+        <h2 style="margin-bottom: 6px;">Agendar Etapa do Processo</h2>
+        <p style="margin-bottom: 20px;">Configure os detalhes da conversa para gerar o convite oficial automaticamente.</p>
+
+        <form id="formScheduleStage">
+          <input type="hidden" id="schCandidateId">
+          <input type="hidden" id="schVacancyId">
+          <input type="hidden" id="schInterviewId">
+
+          <div class="form-group">
+            <label class="form-label">Candidato(a)</label>
+            <input type="text" id="schCandidateName" class="form-control" readonly style="background: var(--surface-2);">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="form-group">
+              <label class="form-label">Etapa do Processo</label>
+              <select id="schStageSelect" class="form-control">
+                <option value="triagem">Triagem Inicial</option>
+                <option value="rh" selected>Entrevista com RH</option>
+                <option value="teste">Teste Técnico / Estudo de Caso</option>
+                <option value="gestor">Entrevista com a Liderança</option>
+                <option value="dinamica">Dinâmica de Grupo</option>
+                <option value="final">Entrevista Final</option>
+                <option value="proposta">Proposta & Alinhamento</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Formato</label>
+              <select id="schModeSelect" class="form-control">
+                <option value="Online (Google Meet)">Online (Google Meet)</option>
+                <option value="Online (Microsoft Teams)">Online (Microsoft Teams)</option>
+                <option value="Presencial na Empresa">Presencial na Empresa</option>
+                <option value="Ligação Telefônica">Ligação Telefônica</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px;">
+            <div class="form-group">
+              <label class="form-label">Data e Horário</label>
+              <input type="datetime-local" id="schDateTime" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Duração Prevista</label>
+              <select id="schDuration" class="form-control">
+                <option value="30">30 minutos</option>
+                <option value="45" selected>45 minutos</option>
+                <option value="60">60 minutos (1 hora)</option>
+                <option value="90">90 minutos</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Link de Acesso ou Endereço Físico</label>
+            <input type="text" id="schLocation" class="form-control" placeholder="https://meet.google.com/..." value="https://meet.google.com/convite-rh">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Orientações e Pauta da Conversa</label>
+            <textarea id="schNotes" class="form-control" rows="3" placeholder="O que o candidato deve preparar ou ter em mãos..."></textarea>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+            <button type="button" class="btn-secondary" onclick="document.getElementById('modalScheduleInterview').classList.remove('show');">Cancelar</button>
+            <button type="submit" class="btn-primary"><i data-lucide="check"></i> Confirmar e Gerar Convite</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Seção: Convite Pronto (Mostrada após salvar) -->
+      <div id="invitationReadySection" style="display: none;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--signal-green-bg); color: var(--signal-green); display: inline-flex; align-items: center; justify-content: center; font-size: 1.8rem; margin-bottom: 8px;">
+            <i data-lucide="check-circle-2"></i>
+          </div>
+          <h2 style="font-size: 1.6rem;">Convite Pronto!</h2>
+          <p>O agendamento foi registrado com sucesso. Você pode enviar a mensagem ou salvar na sua agenda.</p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Texto Formatado do Convite</label>
+          <textarea id="invitationTextOutput" class="form-control" rows="8" readonly style="font-size: 0.88rem; background: var(--surface-2);"></textarea>
+        </div>
+
+        <!-- Botões de Ação Imediata -->
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; justify-content: center;">
+          <button class="btn-primary" id="btnCopyInviteText"><i data-lucide="copy"></i> Copiar Texto</button>
+          <a class="btn-secondary" id="btnInviteWhatsApp" target="_blank"><i data-lucide="message-circle"></i> WhatsApp</a>
+          <a class="btn-secondary" id="btnInviteEmail"><i data-lucide="mail"></i> Abrir E-mail</a>
+          <a class="btn-secondary" id="btnInviteGoogleCal" target="_blank"><i data-lucide="calendar"></i> Google Agenda</a>
+          <button class="btn-secondary" id="btnInviteDownloadIcs"><i data-lucide="download"></i> Arquivo .ICS</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal: Nova Vaga -->
+  <div class="modal-backdrop" id="modalNewVacancy">
+    <div class="modal-dialog" style="max-width: 640px;">
+      <button class="modal-close-btn" onclick="document.getElementById('modalNewVacancy').classList.remove('show');">&times;</button>
+      <h2 style="margin-bottom: 6px;">Publicar Nova Oportunidade</h2>
+      <p style="margin-bottom: 20px;">Cadastre os requisitos técnicos e comportamentais para conectar-se aos melhores talentos.</p>
+
+      <form id="formNewVacancy">
+        <div class="form-group">
+          <label class="form-label">Título da Vaga *</label>
+          <input type="text" id="vacTitle" class="form-control" placeholder="Ex: Analista Financeiro Pleno" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label class="form-label">Empresa Contratante</label>
+            <input type="text" id="vacCompany" class="form-control" placeholder="Nome da empresa" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Modalidade</label>
+            <select id="vacMode" class="form-control">
+              <option value="hibrido">Híbrido</option>
+              <option value="presencial">Presencial</option>
+              <option value="remoto">100% Remoto</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label class="form-label">Cidade</label>
+            <input type="text" id="vacCity" class="form-control" placeholder="São Paulo">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Estado (UF)</label>
+            <input type="text" id="vacUf" class="form-control" placeholder="SP" maxlength="2">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Conhecimentos & Competências Técnicas Exigidas (Separadas por vírgula)</label>
+          <input type="text" id="vacRequirements" class="form-control" placeholder="Ex: Excel avançado, DRE, Fluxo de caixa, Power BI">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Estilo Comportamental Predominante Desejado (DISC Opcional)</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <select id="vacDiscPrimary" class="form-control">
+              <option value="">Fator Principal (Opcional)</option>
+              <option value="D">D - Dominância (Resultados e Execução)</option>
+              <option value="I">I - Influência (Comunicação e Articulação)</option>
+              <option value="S">S - Estabilidade (Consistência e Cooperação)</option>
+              <option value="C">C - Conformidade (Precisão e Rigor Técnico)</option>
+            </select>
+            <select id="vacDiscSecondary" class="form-control">
+              <option value="">Fator Secundário (Opcional)</option>
+              <option value="D">D - Dominância</option>
+              <option value="I">I - Influência</option>
+              <option value="S">S - Estabilidade</option>
+              <option value="C">C - Conformidade</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Descrição Geral da Oportunidade</label>
+          <textarea id="vacDescription" class="form-control" rows="3" placeholder="Descreva os principais desafios e atribuições da posição..."></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+          <button type="button" class="btn-secondary" onclick="document.getElementById('modalNewVacancy').classList.remove('show');">Cancelar</button>
+          <button type="submit" class="btn-primary">Publicar Vaga</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Cadastro de Especialista na Vitrine -->
+  <div class="modal-backdrop" id="modalNewExpert">
+    <div class="modal-dialog" style="max-width: 600px;">
+      <button class="modal-close-btn" onclick="document.getElementById('modalNewExpert').classList.remove('show');">&times;</button>
+      <h2 style="margin-bottom: 6px;">Apresente seu Trabalho na Vitrine</h2>
+      <p style="margin-bottom: 20px;">Espaço para consultores, mentores, treinadores e palestrantes divulgarem seus serviços à comunidade.</p>
+
+      <form id="formNewExpert">
+        <div class="form-group">
+          <label class="form-label">Nome Completo *</label>
+          <input type="text" id="expName" class="form-control" required placeholder="Seu nome">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Título Profissional ou Especialidade *</label>
+          <input type="text" id="expTitle" class="form-control" required placeholder="Ex: Consultor de Governança e Compliance">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Formatos de Atuação (Selecione um ou mais)</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.9rem;">
+            <label><input type="checkbox" name="expFormat" value="Consultoria"> Consultoria</label>
+            <label><input type="checkbox" name="expFormat" value="Mentoria"> Mentoria</label>
+            <label><input type="checkbox" name="expFormat" value="Palestras"> Palestras</label>
+            <label><input type="checkbox" name="expFormat" value="Aulas e treinamentos"> Treinamentos</label>
+            <label><input type="checkbox" name="expFormat" value="Cursos"> Cursos</label>
+            <label><input type="checkbox" name="expFormat" value="Aberto(a) a novas oportunidades"> Aberto a Novas Oportunidades</label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Serviços e Temas de Atuação</label>
+          <input type="text" id="expServices" class="form-control" placeholder="Ex: Gestão de riscos, políticas de RH, liderança de equipes">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Sobre Você & Experiência</label>
+          <textarea id="expAbout" class="form-control" rows="3" placeholder="Resumo de sua trajetória e realizações..."></textarea>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label class="form-label">E-mail para Contato</label>
+            <input type="email" id="expEmail" class="form-control" placeholder="voce@exemplo.com.br">
+          </div>
+          <div class="form-group">
+            <label class="form-label">LinkedIn (URL)</label>
+            <input type="url" id="expLinkedin" class="form-control" placeholder="https://linkedin.com/in/...">
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+          <button type="button" class="btn-secondary" onclick="document.getElementById('modalNewExpert').classList.remove('show');">Cancelar</button>
+          <button type="submit" class="btn-primary">Publicar na Vitrine</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-hub" id="toastHub"></div>
+
+  <!-- Scripts do Aplicativo -->
+  <script type="module" src="js/app.js"></script>
+
+</body>
+</html>
