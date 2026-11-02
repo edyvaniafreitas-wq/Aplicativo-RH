@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Suite de Testes Automatizados • Monte Sua Equipe</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; padding: 24px; }
+    h1 { color: #38bdf8; font-size: 1.5rem; margin-bottom: 8px; }
+    .summary { font-size: 1.1rem; margin-bottom: 20px; padding: 12px 18px; border-radius: 8px; }
+    .summary.pass { background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; color: #4ade80; }
+    .summary.fail { background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #f87171; }
+    .test-item { margin-bottom: 8px; padding: 8px 12px; border-radius: 6px; font-family: monospace; font-size: 0.9rem; }
+    .test-item.pass { background: rgba(34, 197, 94, 0.08); color: #86efac; }
+    .test-item.fail { background: rgba(239, 68, 68, 0.2); color: #fca5a5; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Suite de Testes Automatizados • Monte Sua Equipe</h1>
+  <div id="summary" class="summary">Executando bateria de testes...</div>
+  <div id="results"></div>
+
+  <script type="module">
+    import { StorageService } from './js/data/storage.js';
+    import { DiscEngine } from './js/modules/disc-engine.js';
+    import { MatchingEngine } from './js/modules/matching-engine.js';
+    import { CvParser } from './js/modules/cv-parser.js';
+    import { CvAnalyzer } from './js/modules/cv-analyzer.js';
+    import { TalentSearchEngine } from './js/modules/talent-search.js';
+    import { ProcessService, PIPELINE_STAGES } from './js/modules/processes.js';
+    import { AdminService } from './js/modules/admin.js';
+    import { QuantumSquadEngine } from './js/modules/quantum-squad.js';
+    import { CloudDbConnector } from './js/modules/cloud-db.js';
+    import { InteractiveFx } from './js/modules/interactive-fx.js';
+    import { SKILLS_DICTIONARY, BEHAVIORAL_TRAITS, DISC_STATEMENTS } from './js/data/constants.js';
+
+    const resultsContainer = document.getElementById('results');
+    const summaryContainer = document.getElementById('summary');
+    let passed = 0;
+    let failed = 0;
+
+    function assert(condition, testName, errorDetails = '') {
+      const el = document.createElement('div');
+      el.className = 'test-item ' + (condition ? 'pass' : 'fail');
+      if (condition) {
+        passed++;
+        el.textContent = `[PASS] ${testName}`;
+      } else {
+        failed++;
+        el.textContent = `[FAIL] ${testName} -> ${errorDetails}`;
+        console.error(`[FAIL] ${testName}`, errorDetails);
+      }
+      resultsContainer.appendChild(el);
+    }
+
+    async function runAllTests() {
+      console.log('Iniciando Testes Automatizados...');
+
+      // TESTES 1: StorageService
+      try {
+        StorageService.init();
+        assert(true, 'StorageService.init() executa sem exceções');
+
+        const cands = StorageService.getCandidates();
+        assert(Array.isArray(cands) && cands.length >= 4, 'StorageService.getCandidates() retorna lista de candidatos');
+
+        const cand1 = StorageService.getCandidateById('cand_1');
+        assert(cand1 && cand1.full_name.includes('Mariana'), 'StorageService.getCandidateById encontra Mariana Alencar');
+
+        const vacs = StorageService.getVacancies();
+        assert(Array.isArray(vacs) && vacs.length >= 3, 'StorageService.getVacancies() retorna lista de vagas');
+
+        const testCand = {
+          id: 'cand_test_999',
+          full_name: 'Candidato Teste Automatizado',
+          city: 'Fortaleza',
+          uf: 'CE',
+          skills: ['Excel', 'SQL'],
+          traits: ['proativo']
+        };
+        StorageService.saveCandidate(testCand);
+        const retrievedTest = StorageService.getCandidateById('cand_test_999');
+        assert(retrievedTest && retrievedTest.full_name === 'Candidato Teste Automatizado', 'StorageService.saveCandidate salva e recupera com sucesso');
+
+        // Teste de candidatura
+        const applied = StorageService.applyToVacancy('cand_test_999', 'vac_1');
+        assert(applied === true, 'StorageService.applyToVacancy registra interesse');
+        const appliedDuplicate = StorageService.applyToVacancy('cand_test_999', 'vac_1');
+        assert(appliedDuplicate === false, 'StorageService.applyToVacancy rejeita duplicação');
+
+        // Teste de exportação LGPD Art. 18
+        const lgpdExport = StorageService.exportMyData('cand_test_999');
+        assert(lgpdExport && lgpdExport.candidato && lgpdExport.interessesEmVagas.length === 1, 'StorageService.exportMyData exporta dossiê completo LGPD');
+
+        // Teste de exclusão LGPD
+        StorageService.deleteMyAccount('cand_test_999');
+        const deletedRetrieved = StorageService.getCandidateById('cand_test_999');
+        assert(deletedRetrieved === undefined, 'StorageService.deleteMyAccount exclui conta conforme LGPD');
+
+        // Teste de Cloud Config
+        const cloudConf = StorageService.getCloudConfig();
+        assert(cloudConf && typeof cloudConf === 'object', 'StorageService.getCloudConfig() retorna objeto válido');
+        StorageService.saveCloudConfig({ supabaseUrl: 'https://test.supabase.co' });
+        const updatedConf = StorageService.getCloudConfig();
+        assert(updatedConf.supabaseUrl === 'https://test.supabase.co', 'StorageService.saveCloudConfig atualiza configurações');
+
+        // Teste de Squads
+        const squads = StorageService.getSquads();
+        assert(Array.isArray(squads) && squads.length >= 1, 'StorageService.getSquads() retorna squads');
+
+      } catch (err) {
+        assert(false, 'StorageService suite', err.message);
+      }
+
+      // TESTES 2: DiscEngine
+      try {
+        // Simulando respostas onde predomina 'D'
+        const answersD = {};
+        DISC_STATEMENTS.forEach(q => {
+          answersD[q.id] = (q.factor === 'D') ? 5 : 1;
+        });
+        const discResultD = DiscEngine.calculateScores(answersD);
+        assert(discResultD.primary === 'D', 'DiscEngine identifica Dominância (D) corretamente', `Retornou: ${discResultD.primary}`);
+
+        // Simulando respostas onde predomina 'I'
+        const answersI = {};
+        DISC_STATEMENTS.forEach(q => {
+          answersI[q.id] = (q.factor === 'I') ? 5 : 1;
+        });
+        const discResultI = DiscEngine.calculateScores(answersI);
+        assert(discResultI.primary === 'I', 'DiscEngine identifica Influência (I) corretamente', `Retornou: ${discResultI.primary}`);
+
+        // Simulando respostas onde predomina 'C'
+        const answersC = {};
+        DISC_STATEMENTS.forEach(q => {
+          answersC[q.id] = (q.factor === 'C') ? 5 : 1;
+        });
+        const discResultC = DiscEngine.calculateScores(answersC);
+        assert(discResultC.primary === 'C', 'DiscEngine identifica Conformidade (C) corretamente', `Retornou: ${discResultC.primary}`);
+
+      } catch (err) {
+        assert(false, 'DiscEngine suite', err.message);
+      }
+
+      // TESTES 3: MatchingEngine
+      try {
+        const candMariana = StorageService.getCandidateById('cand_1');
+        const vacControladoria = StorageService.getVacancyById('vac_1');
+        const matchResult = MatchingEngine.calculateMatch(candMariana, vacControladoria);
+
+        assert(typeof matchResult.overall === 'number' && matchResult.overall >= 75,
+          `MatchingEngine calcula afinidade alta para Mariana e Vaga Financeira (${matchResult.overall}%)`);
+        assert(matchResult.breakdown && typeof matchResult.breakdown.skillsScore === 'number',
+          'MatchingEngine calcula detalhamento de competências, comportamentos e DISC');
+
+        // Candidato sem afinidade
+        const mismatchCand = {
+          id: 'cand_mismatch',
+          skills: ['Cozinha', 'Primeiros socorros'],
+          traits: ['calmo'],
+          disc: { primary: 'D', secondary: 'I' },
+          work_mode: 'presencial',
+          city: 'Manaus',
+          uf: 'AM'
+        };
+        const mismatchResult = MatchingEngine.calculateMatch(mismatchCand, vacControladoria);
+        assert(mismatchResult.overall < matchResult.overall,
+          `MatchingEngine pontua menos candidato desalinhado (${mismatchResult.overall}% < ${matchResult.overall}%)`);
+
+      } catch (err) {
+        assert(false, 'MatchingEngine suite', err.message);
+      }
+
+      // TESTES 4: QuantumSquadEngine
+      try {
+        const c1 = StorageService.getCandidateById('cand_1'); // C/S
+        const c2 = StorageService.getCandidateById('cand_2'); // I/S
+        const c4 = StorageService.getCandidateById('cand_4'); // D/I
+
+        const squad = [
+          { candidate_id: c1.id, role: 'Líder Financeiro' },
+          { candidate_id: c2.id, role: 'Líder CX' },
+          { candidate_id: c4.id, role: 'Líder Comercial' }
+        ];
+
+        const synergy = QuantumSquadEngine.calculateSquadSynergy(squad);
+        assert(typeof synergy.score === 'number' && synergy.score >= 80,
+          `QuantumSquadEngine calcula alta sinergia para time diverso (Score: ${synergy.score})`);
+        assert(synergy.discCoverage && Object.keys(synergy.discCoverage).length === 4,
+          'QuantumSquadEngine valida cobertura completa dos fatores D, I, S, C');
+
+      } catch (err) {
+        assert(false, 'QuantumSquadEngine suite', err.message);
+      }
+
+      // TESTES 5: CvParser & CvAnalyzer
+      try {
+        const sampleCv = `
+          Curriculum Vitae: Roberto Alves Rocha
+          Email: roberto.rocha@gmail.com | Telefone: (11) 98765-4321
+          Cidade: São Paulo - SP
+          Experiência: Analista Contábil Sênior com 7 anos em conciliação bancária, fechamento de balanço e DRE no ERP Protheus.
+          Competências: Excel avançado, Power BI, SQL, Contabilidade, Protheus.
+          Perfil: Profissional focado em organização, detalhista e ético.
+        `;
+        const parsed = CvParser.parseText(sampleCv);
+        assert(parsed.email === 'roberto.rocha@gmail.com', `CvParser extrai email corretamente (${parsed.email})`);
+        assert(parsed.phone.includes('98765-4321'), `CvParser extrai telefone corretamente (${parsed.phone})`);
+        assert(parsed.skills.includes('Excel avançado') && parsed.skills.includes('Power BI'), 'CvParser identifica competências do dicionário');
+
+        const candMariana = StorageService.getCandidateById('cand_1');
+        const analyzed = CvAnalyzer.analyze(candMariana);
+        assert(analyzed.score >= 80, `CvAnalyzer pontua currículo completo com nota alta (${analyzed.score}/100)`);
+        assert(Array.isArray(analyzed.tips), 'CvAnalyzer gera orientações de aprimoramento');
+
+      } catch (err) {
+        assert(false, 'CvParser / CvAnalyzer suite', err.message);
+      }
+
+      // TESTES 6: TalentSearchEngine
+      try {
+        const searchResults = TalentSearchEngine.search({
+          query: 'Power BI',
+          uf: 'SP',
+          recruiterId: 'recruiter_test'
+        });
+        assert(searchResults.length >= 1, `TalentSearchEngine encontra candidatos por tecnologia e UF (${searchResults.length} encontrados)`);
+
+        const logs = StorageService.getSearchLogs();
+        assert(logs.length >= 1 && logs[0].query === 'Power BI', 'TalentSearchEngine registra log de auditoria da busca');
+
+      } catch (err) {
+        assert(false, 'TalentSearchEngine suite', err.message);
+      }
+
+      // TESTES 7: ProcessService
+      try {
+        const interviews = ProcessService.getInterviews();
+        assert(Array.isArray(interviews) && interviews.length >= 1, 'ProcessService lista entrevistas');
+        assert(Array.isArray(PIPELINE_STAGES) && PIPELINE_STAGES.length >= 5, 'ProcessService contém etapas canônicas do funil');
+
+        const updatedInterview = ProcessService.advanceStage('proc_1');
+        assert(updatedInterview !== null, 'ProcessService.advanceStage avança etapa do processo seletivo');
+
+      } catch (err) {
+        assert(false, 'ProcessService suite', err.message);
+      }
+
+      // TESTES 8: AdminService
+      try {
+        const stats = AdminService.getAdminStats();
+        assert(typeof stats.totalCandidates === 'number' && stats.totalCandidates >= 4, 'AdminService consolida total de candidatos');
+        assert(typeof stats.totalVacancies === 'number' && stats.totalVacancies >= 3, 'AdminService consolida total de vagas');
+        assert(typeof stats.totalInterviews === 'number', 'AdminService consolida total de entrevistas');
+
+      } catch (err) {
+        assert(false, 'AdminService suite', err.message);
+      }
+
+      // TESTES 9: CloudDbConnector
+      try {
+        const schema = CloudDbConnector.getSupabaseSchemaSql();
+        assert(schema.includes('CREATE TABLE IF NOT EXISTS public.mse_candidates'), 'CloudDbConnector gera DDL SQL completo para o Supabase');
+        assert(schema.includes('ROW LEVEL SECURITY'), 'CloudDbConnector inclui políticas de segurança no script');
+
+      } catch (err) {
+        assert(false, 'CloudDbConnector suite', err.message);
+      }
+
+      // TESTES 10: InteractiveFx
+      try {
+        assert(typeof InteractiveFx.playClick === 'function', 'InteractiveFx.playClick está definido');
+        assert(typeof InteractiveFx.playChime === 'function', 'InteractiveFx.playChime está definido');
+        assert(typeof InteractiveFx.playScan === 'function', 'InteractiveFx.playScan está definido');
+
+      } catch (err) {
+        assert(false, 'InteractiveFx suite', err.message);
+      }
+
+      // Conclusão
+      summaryContainer.className = 'summary ' + (failed === 0 ? 'pass' : 'fail');
+      summaryContainer.innerHTML = `<strong>Total de Testes: ${passed + failed}</strong> | <span style="color: #4ade80;">Passaram: ${passed}</span> | <span style="color: #f87171;">Falharam: ${failed}</span>`;
+      console.log(`Testes Finalizados. Passaram: ${passed}, Falharam: ${failed}`);
+    }
+
+    window.addEventListener('DOMContentLoaded', runAllTests);
+  </script>
+</body>
+</html>

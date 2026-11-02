@@ -218,6 +218,29 @@ export class MatchingEngine {
   }
 
   /**
+   * Interface unificada de cálculo de aderência com pontuação global e detalhamento
+   */
+  static calculateMatch(candidate, vacancy) {
+    const evalResult = this.evaluateCandidateForVacancy(candidate, vacancy);
+    const tech = evalResult.technical;
+    const disc = evalResult.behavioral;
+    return {
+      overall: tech.score,
+      trafficLight: tech.trafficLight,
+      label: tech.label,
+      breakdown: {
+        skillsScore: tech.details.find(d => d.criterion.includes("Conhecimentos"))?.earned || 0,
+        traitsScore: tech.details.find(d => d.criterion.includes("Estilos"))?.earned || 0,
+        locationScore: tech.details.find(d => d.criterion.includes("Localização"))?.earned || 0,
+        discScore: disc.adherence || 75
+      },
+      technical: tech,
+      behavioral: disc,
+      interviewQuestions: evalResult.interviewQuestions
+    };
+  }
+
+  /**
    * Criação do Roteiro Científico de Entrevista Estruturada
    */
   static generateStructuredInterviewQuestions(candidate, vacancy) {

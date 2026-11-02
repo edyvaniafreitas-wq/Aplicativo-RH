@@ -21,6 +21,10 @@ export class CvParser {
     return cleaned;
   }
 
+  static parseText(rawText) {
+    return this.parse(rawText);
+  }
+
   /**
    * Extração estruturada de informações do texto bruto do currículo
    */

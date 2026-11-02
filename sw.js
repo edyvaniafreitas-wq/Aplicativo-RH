@@ -4,7 +4,7 @@
  * DIRETRIZ LGPD: NUNCA armazena em cache dados pessoais ou respostas do formulário
  */
 
-const CACHE_NAME = 'mse-cache-v1';
+const CACHE_NAME = 'mse-cache-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -19,6 +19,9 @@ const ASSETS_TO_CACHE = [
   './js/modules/talent-search.js',
   './js/modules/processes.js',
   './js/modules/admin.js',
+  './js/modules/quantum-squad.js',
+  './js/modules/cloud-db.js',
+  './js/modules/interactive-fx.js',
   './manifest.json'
 ];
 

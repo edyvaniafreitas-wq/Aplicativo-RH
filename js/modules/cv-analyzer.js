@@ -153,6 +153,7 @@ export class CvAnalyzer {
       statusLabel: statusLabel,
       messageTone: messageTone,
       items: items,
+      tips: items.map(i => i.tip).filter(Boolean),
       topicToLearn: topicToLearn,
       courseRecommendations: courseRecommendations
     };

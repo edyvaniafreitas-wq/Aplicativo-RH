@@ -64,12 +64,12 @@ class AppController {
     });
 
     // Logo inicial
-    document.getElementById('btnGoHome').addEventListener('click', () => {
+    document.getElementById('btnGoHome')?.addEventListener('click', () => {
       this.switchTab(this.getDefaultTabForRole(this.currentRole));
     });
 
     // Tema Escuro / Claro
-    document.getElementById('btnToggleTheme').addEventListener('click', () => {
+    document.getElementById('btnToggleTheme')?.addEventListener('click', () => {
       const current = document.body.getAttribute('data-theme') || 'light';
       const next = current === 'light' ? 'dark' : 'light';
       document.body.setAttribute('data-theme', next);
@@ -78,7 +78,7 @@ class AppController {
     });
 
     // Termos e Privacidade
-    document.getElementById('btnOpenPrivacyTerms').addEventListener('click', () => {
+    document.getElementById('btnOpenPrivacyTerms')?.addEventListener('click', () => {
       this.openPrivacyModal();
     });
 
@@ -109,19 +109,19 @@ class AppController {
     this.bindCloudDbModalEvents();
 
     // Form Agendar Entrevista
-    document.getElementById('formScheduleStage').addEventListener('submit', (e) => {
+    document.getElementById('formScheduleStage')?.addEventListener('submit', (e) => {
       e.preventDefault();
       this.handleScheduleSubmit();
     });
 
     // Form Nova Vaga
-    document.getElementById('formNewVacancy').addEventListener('submit', (e) => {
+    document.getElementById('formNewVacancy')?.addEventListener('submit', (e) => {
       e.preventDefault();
       this.handleNewVacancySubmit();
     });
 
     // Form Novo Especialista
-    document.getElementById('formNewExpert').addEventListener('submit', (e) => {
+    document.getElementById('formNewExpert')?.addEventListener('submit', (e) => {
       e.preventDefault();
       this.handleNewExpertSubmit();
     });
@@ -283,6 +283,7 @@ class AppController {
 
   renderSubNavTabs() {
     const container = document.getElementById('navTabsContainer');
+    if (!container) return;
     let tabs = [];
 
     if (this.currentRole === 'candidate') {
@@ -343,6 +344,7 @@ class AppController {
     });
 
     const viewContainer = document.getElementById('viewContainer');
+    if (!viewContainer) return;
     viewContainer.innerHTML = '';
 
     switch (tabId) {
@@ -412,13 +414,14 @@ class AppController {
   }
 
   checkPendingApprovals() {
-    const metrics = AdminService.getMetrics();
     const alertBox = document.getElementById('pendingApprovalAlert');
+    if (!alertBox) return;
     const alertText = document.getElementById('pendingApprovalText');
+    const metrics = AdminService.getMetrics();
 
     if (metrics.pendingCount > 0) {
       alertBox.style.display = 'inline-flex';
-      alertText.textContent = `${metrics.pendingCount} empresa(s) com cadastro pendente de aprovação pela administradora.`;
+      if (alertText) alertText.textContent = `${metrics.pendingCount} empresa(s) com cadastro pendente de aprovação pela administradora.`;
     } else {
       alertBox.style.display = 'none';
     }
@@ -632,7 +635,7 @@ class AppController {
       </div>
     `;
 
-    document.getElementById('cvFileInput').addEventListener('change', (e) => {
+    document.getElementById('cvFileInput')?.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (file) {
         const reader = new FileReader();
@@ -644,7 +647,7 @@ class AppController {
       }
     });
 
-    document.getElementById('btnProcessCv').addEventListener('click', () => {
+    document.getElementById('btnProcessCv')?.addEventListener('click', () => {
       const text = document.getElementById('cvPasteText').value;
       if (!text.trim()) {
         this.showToast("Por favor, cole o texto do currículo antes de processar.", "error");
@@ -765,7 +768,7 @@ Excel avançado, Power BI, Fluxo de caixa, Conciliação bancária, Contas a pag
       </div>
     `;
 
-    document.getElementById('formDiscQuiz').addEventListener('submit', (e) => {
+    document.getElementById('formDiscQuiz')?.addEventListener('submit', (e) => {
       e.preventDefault();
       const answers = {};
       let firstPendingStmt = null;
@@ -1050,12 +1053,12 @@ Excel avançado, Power BI, Fluxo de caixa, Conciliação bancária, Contas a pag
       </div>
     `;
 
-    document.getElementById('chkProfileVisible').addEventListener('change', (e) => {
+    document.getElementById('chkProfileVisible')?.addEventListener('change', (e) => {
       StorageService.saveCandidate({ ...candidate, visible: e.target.checked });
       this.showToast(`Visibilidade do perfil alterada para: ${e.target.checked ? 'Visível' : 'Oculto'}.`);
     });
 
-    document.getElementById('chkProfileNotify').addEventListener('change', (e) => {
+    document.getElementById('chkProfileNotify')?.addEventListener('change', (e) => {
       StorageService.saveCandidate({ ...candidate, notify_email: e.target.checked });
       this.showToast(`Alertas de vagas: ${e.target.checked ? 'Ativados' : 'Desativados'}.`);
     });
@@ -1354,7 +1357,7 @@ Excel avançado, Power BI, Fluxo de caixa, Conciliação bancária, Contas a pag
       );
     });
 
-    document.getElementById('btnExecuteSearch').addEventListener('click', () => {
+    document.getElementById('btnExecuteSearch')?.addEventListener('click', () => {
       this.executeTalentSearch();
     });
 
@@ -2403,7 +2406,7 @@ Excel avançado, Power BI, Fluxo de caixa, Conciliação bancária, Contas a pag
       </div>
     `;
 
-    document.getElementById('btnSaveConfig').addEventListener('click', () => {
+    document.getElementById('btnSaveConfig')?.addEventListener('click', () => {
       StorageService.updateSettings({
         auto_approve_candidates: document.getElementById('setCandidateAutoApprove').checked,
         auto_approve_recruiters: document.getElementById('setRecruiterAutoApprove').checked,
@@ -2666,6 +2669,8 @@ Excel avançado, Power BI, Fluxo de caixa, Conciliação bancária, Contas a pag
     }
   }
 }
+
+export { AppController };
 
 // Inicialização Global
 window.addEventListener('DOMContentLoaded', () => {

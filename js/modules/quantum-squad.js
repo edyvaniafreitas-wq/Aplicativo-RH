@@ -4,7 +4,22 @@
  * 100% Client-Side, Sem Custos de APIs, Algoritmos Determinísticos
  */
 
+import { StorageService } from '../data/storage.js';
+
 export class QuantumSquadEngine {
+  /**
+   * Atalho de conveniência para cálculo de sinergia de squad
+   */
+  static calculateSquadSynergy(members, allCandidates = null) {
+    const candidates = allCandidates || StorageService.getCandidates();
+    const metrics = this.calculateSquadMetrics(members, candidates);
+    return {
+      score: metrics.synergyScore,
+      discCoverage: metrics.discBalance,
+      ...metrics
+    };
+  }
+
   /**
    * Calcula a sinergia multidisciplinar de um Squad (3 a 5 membros)
    * Baseado na complementaridade de perfis DISC e cobertura de competências

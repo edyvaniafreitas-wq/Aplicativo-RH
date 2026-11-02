@@ -14,6 +14,10 @@ export class DiscEngine {
    * Calcula as pontuações e intensidades relativas dos 4 fatores DISC
    * @param {Object} answers Mapa de id da afirmação (1-24) para valor (1-5)
    */
+  static calculateScores(answers) {
+    return this.calculate(answers);
+  }
+
   static calculate(answers) {
     const rawSums = { D: 0, I: 0, S: 0, C: 0 };
     const answeredCount = Object.keys(answers).length;

@@ -87,8 +87,23 @@ export class TalentSearchEngine {
   /**
    * Executa a busca nos candidatos cadastrados aplicando compatibilidade técnica
    */
-  static search(prompt, reason, vacancyId = null, recruiterId = null) {
-    if (!reason || reason.trim().length < 5) {
+  static search(promptOrOptions, reasonArg = null, vacancyIdArg = null, recruiterIdArg = null) {
+    let prompt = "";
+    let reason = "";
+    let vacancyId = vacancyIdArg;
+    let recruiterId = recruiterIdArg;
+
+    if (typeof promptOrOptions === 'object' && promptOrOptions !== null) {
+      prompt = promptOrOptions.prompt || promptOrOptions.query || "";
+      reason = promptOrOptions.reason || "Busca ativa de talentos por competências";
+      vacancyId = promptOrOptions.vacancyId || vacancyIdArg;
+      recruiterId = promptOrOptions.recruiterId || recruiterIdArg;
+    } else {
+      prompt = String(promptOrOptions || "");
+      reason = reasonArg ? String(reasonArg).trim() : "Busca ativa de talentos por competências";
+    }
+
+    if (!reason || reason.length < 5) {
       throw new Error("O 'Motivo da busca' é obrigatório (mínimo de 5 caracteres) para registro de auditoria e conformidade LGPD.");
     }
 
@@ -112,13 +127,18 @@ export class TalentSearchEngine {
     // Registra auditoria da busca (search_logs)
     StorageService.logSearch(prompt, reason, results.length, recruiterId, vacancyId);
 
-    return {
+    const output = {
       query: prompt,
       reason: reason,
       parsed: parsed,
       results: results,
-      totalFound: results.length
+      totalFound: results.length,
+      length: results.length,
+      [Symbol.iterator]: function* () {
+        for (const item of results) yield item;
+      }
     };
+    return output;
   }
 
   /**

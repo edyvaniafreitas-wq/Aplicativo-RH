@@ -35,7 +35,7 @@ export const BEHAVIORAL_TRAITS = [
   { key: "criativo", label: "Criativo(a) e inovador(a)", triggers: ["criativ", "inovad", "inovacao"] },
   { key: "detalhista", label: "Detalhista", triggers: ["detalh", "minucios", "atencao aos detalhes", "precisao"] },
   { key: "colaborativo", label: "Trabalho em equipe", triggers: ["trabalho em equipe", "espirito de equipe", "colabor", "cooperat"] },
-  { key: "pontual", label: "Pontual e comprometido(a)", triggers: ["pontual", "assidu,compromet", "responsav"] },
+  { key: "pontual", label: "Pontual e comprometido(a)", triggers: ["pontual", "assidu", "compromet", "responsav"] },
   { key: "empatico", label: "Empático(a)", triggers: ["empat", "escuta ativa", "acolhed"] },
   { key: "aprendiz", label: "Gosta de aprender", triggers: ["aprender", "curios", "autodidat", "estudios"] }
 ];

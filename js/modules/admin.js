@@ -38,6 +38,8 @@ export class AdminService {
       totalUsers: totalUsers,
       totalCandidates: totalCandidates,
       totalRecruiters: totalRecruiters,
+      totalVacancies: vacancies.length,
+      totalInterviews: interviews.length,
       totalSearches: totalSearches,
       totalConnections: totalConnections,
       savedPercentage: savedPercentage,
@@ -45,6 +47,10 @@ export class AdminService {
       pendingCount: pendingProfiles.length,
       pendingProfiles: pendingProfiles
     };
+  }
+
+  static getAdminStats() {
+    return this.getMetrics();
   }
 
   /**
