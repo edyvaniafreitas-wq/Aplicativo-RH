@@ -1,30 +1,39 @@
 # 🤝 Monte Sua Equipe • Plataforma Executiva de Conexão Profissional & Gestão de RH
 
-> **Uma solução concebida e idealizada por Edvania Freitas ([@ampliaperformance](https://www.instagram.com/ampliaperformance/)) para conectar profissionais a empresas, consultorias de RH e recrutadores com respeito, acolhimento e inteligência estratégica.**
+> **Uma solução concebida e idealizada por Edvania Freitas ([@ampliaperformance](https://www.instagram.com/ampliaperformance/)) para conectar profissionais a empresas, consultorias de RH e lideranças com respeito, acolhimento, alta tecnologia e inteligência estratégica.**
 
 [![Brand](https://img.shields.io/badge/Idealizado%20por-Edvania%20Freitas-0ea5e9.svg)](https://www.instagram.com/ampliaperformance/)
 [![Instagram](https://img.shields.io/badge/Instagram-@ampliaperformance-E1306C.svg)](https://www.instagram.com/ampliaperformance/)
-[![Arquitetura](https://img.shields.io/badge/Arquitetura-100%25%20Aut%C3%B4noma%20%7C%20Sem%20Lovable-brightgreen.svg)]()
-[![Status](https://img.shields.io/badge/Status-100%25%20Funcional-success.svg)]()
+[![Design](https://img.shields.io/badge/Design-Luminous%20Futuristic%20Crystal-6366f1.svg)]()
+[![Banco Acoplado](https://img.shields.io/badge/Banco%20de%20Dados-IndexedDB%20%2B%20Supabase%20Free-10b981.svg)]()
+[![Hospedagem](https://img.shields.io/badge/Hospedagem-100%25%20Gratuita%20(GitHub%20Pages%20%2F%20Vercel)-blue.svg)]()
 [![LGPD](https://img.shields.io/badge/Conformidade-LGPD%20Art.%207%20e%2018-blue.svg)]()
 
 ---
 
-## 💡 Estudo & Análise: Por que e Como Funciona Sem o Lovable?
+## 💎 Arquitetura Luminous Futuristic: Sofisticação, Interatividade e Zero Custo
 
-### 1. O Diagnóstico das Limitações do Lovable
-Nas plataformas do ecossistema Lovable (como TanStack Start / Vite configurado com dependências `@lovable.dev`), os projetos enfrentam três grandes desafios:
-1. **Cobrança recorrente de créditos:** Cada ajuste em formulários, regras de matching ou componentes consome créditos pagos da ferramenta.
-2. **Dependência de servidores intermediários:** Se o serviço de nuvem do Lovable estiver instável, a aplicação não carrega ou perde dados.
-3. **Complexidade desnecessária de build:** A dependência de empacotadores pesados dificulta a execução direta pelo cliente e aumenta o risco de telas brancas (*blank screens*) e regressões.
+Este projeto foi construído para aliar **design executivo de alto impacto**, **interatividade quântica**, **fotos realistas**, **banco de dados acoplado** e **publicação 100% gratuita** para qualquer usuário ou empresa:
 
-### 2. A Solução Perfeita e 100% Funcional (Nativa & Livre)
-Este aplicativo foi concebido com uma **arquitetura moderna, limpa e autônoma**, exatamente como as plataformas corporativas de maior sucesso da Âmplia Performance (`Politicas` e `Leads`):
-- **Motor 100% Client-Side:** Toda a inteligência (leitura de currículo, sanitização de CPF/RG, cálculo de compatibilidade ponderada, perfil comportamental DISC e geração de dossiês) roda no navegador do usuário, **sem custo de APIs pagas e sem IA cara**.
-- **Duplo Modo de Persistência:**
-  - *Modo Autônomo Imediato:* Utiliza LocalStorage e IndexedDB com isolamento e governança, funcionando instantaneamente sem necessidade de configurar nada.
-  - *Modo Nuvem (Opcional):* Totalmente compatível com Supabase padrão caso a administradora decida hospedar um backend compartilhado.
-- **PWA (Progressive Web App):** Instalável no celular e no computador com Service Worker que armazena as telas em cache e **nunca expõe dados pessoais**.
+1. **Design Luminous Cyber-Crystal (Futurista mas NÃO Escuro):**
+   - Paleta cristalina inspirada em daylight corporativo premium (`#F8FAFC` a `#FFFFFF`), orbes de luz ambiente flutuantes, glassmorphism com efeito de profundidade óptica e reflexo especular de luz 3D ao passar o cursor sobre os cartões (*3D Gyroscope Card Tilt*).
+   - Tipografia executiva: *Bricolage Grotesque*, *Source Sans 3* e *IBM Plex Mono*.
+
+2. **Simulador Quântico de Squads 360° ("Monte Sua Equipe"):**
+   - Compositor interativo de times de alta produtividade (Liderança, Técnico, Governança e Cultura).
+   - Cálculo instantâneo do **Score de Sinergia do Time (0 a 100%)**, harmonia de temperamentos DISC e **Radar Holográfico Coletivo de Competências**.
+   - Geração com 1 clique de **Dossiê Executivo de Squad (HTML/PDF)** para apresentação à Diretoria e C-Level.
+
+3. **Constelação Neural Interativa de Talentos:**
+   - Visualizador em Canvas 60fps com física suave onde profissionais orbitam como nós cristalinos pulsantes, conectando-se a vagas e competências em tempo real.
+
+4. **Efeitos Sonoros Futuristas Nativos (Web Audio API):**
+   - Síntese acústica direta pelo navegador (sem carregar arquivos de áudio pesados), proporcionando feedback auditivo elegante de compatibilidade e escaneamento, com botão de silenciar no cabeçalho.
+
+5. **Banco de Dados Acoplado & Publicação 100% Gratuita:**
+   - **Camada Local:** IndexedDB + LocalStorage reativo com persistência garantida, zero configuração, offline nativo e exportação/importação integral em JSON.
+   - **Camada Nuvem Gratuita:** Conector direto com Supabase Free Tier (zero cartão de crédito) com gerador automático de script SQL de tabelas e políticas RLS.
+   - **Deploy sem Custo:** Configuração pronta para GitHub Pages (`.github/workflows/deploy.yml`) e Vercel (`vercel.json`).
 
 ---
 

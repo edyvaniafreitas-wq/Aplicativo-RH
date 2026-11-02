@@ -18,9 +18,11 @@ const STORAGE_KEYS = {
   APPLICATIONS: 'mse_applications',
   INTERVIEWS: 'mse_interviews',
   EXPERTS: 'mse_experts',
+  SQUADS: 'mse_squads',
   SEARCH_LOGS: 'mse_search_logs',
   ACTIVITY: 'mse_activity',
-  BRANDING: 'mse_branding'
+  BRANDING: 'mse_branding',
+  CLOUD_CONFIG: 'mse_cloud_config'
 };
 
 const DEFAULT_SETTINGS = {
@@ -30,7 +32,8 @@ const DEFAULT_SETTINGS = {
   recruiters_see_contact: true,
   recruiters_can_export: true,
   candidates_see_vacancies: true,
-  experts_visible: true
+  experts_visible: true,
+  audio_fx_enabled: true
 };
 
 export class StorageService {
@@ -41,6 +44,19 @@ export class StorageService {
 
     if (!this.get(STORAGE_KEYS.CANDIDATES)) {
       this.set(STORAGE_KEYS.CANDIDATES, INITIAL_SEED_CANDIDATES);
+    } else {
+      // Hidratar avatares em registros existentes
+      const currentCands = this.get(STORAGE_KEYS.CANDIDATES);
+      let updated = false;
+      const enriched = currentCands.map(c => {
+        const seed = INITIAL_SEED_CANDIDATES.find(s => s.id === c.id);
+        if (seed && seed.avatar && !c.avatar) {
+          updated = true;
+          return { ...c, avatar: seed.avatar };
+        }
+        return c;
+      });
+      if (updated) this.set(STORAGE_KEYS.CANDIDATES, enriched);
     }
 
     if (!this.get(STORAGE_KEYS.VACANCIES)) {
@@ -49,6 +65,35 @@ export class StorageService {
 
     if (!this.get(STORAGE_KEYS.EXPERTS)) {
       this.set(STORAGE_KEYS.EXPERTS, INITIAL_SEED_EXPERTS);
+    } else {
+      const currentExperts = this.get(STORAGE_KEYS.EXPERTS);
+      let updatedExp = false;
+      const enrichedExp = currentExperts.map(e => {
+        const seed = INITIAL_SEED_EXPERTS.find(s => s.id === e.id);
+        if (seed && seed.avatar && !e.avatar) {
+          updatedExp = true;
+          return { ...e, avatar: seed.avatar };
+        }
+        return e;
+      });
+      if (updatedExp) this.set(STORAGE_KEYS.EXPERTS, enrichedExp);
+    }
+
+    if (!this.get(STORAGE_KEYS.SQUADS)) {
+      this.set(STORAGE_KEYS.SQUADS, [
+        {
+          id: 'squad_1',
+          name: 'Squad Alfa • Transformação Digital & Eficiência',
+          description: 'Time multifuncional focado em automação financeira, compliance trabalhista e excelência comercial.',
+          members: [
+            { candidate_id: 'cand_1', role: 'Liderança Financeira & FP&A' },
+            { candidate_id: 'cand_3', role: 'Governança & Compliance CLT' },
+            { candidate_id: 'cand_4', role: 'Expansão Comercial B2B' }
+          ],
+          synergy_score: 94,
+          created_at: new Date().toISOString()
+        }
+      ]);
     }
 
     if (!this.get(STORAGE_KEYS.PROFILES)) {
@@ -411,6 +456,117 @@ export class StorageService {
     this.set(STORAGE_KEYS.INTERVIEWS, interviews);
 
     this.logActivity('exclusao_lgpd', `Conta do candidato ${candidateId} eliminada em conformidade com o Art. 18 da LGPD`);
+    return true;
+  }
+
+  // --- MÓDULO SQUADS: "MONTE SUA EQUIPE 360°" ---
+  static getSquads() {
+    return this.get(STORAGE_KEYS.SQUADS, []);
+  }
+
+  static getSquadById(id) {
+    const squads = this.getSquads();
+    return squads.find(s => s.id === id) || null;
+  }
+
+  static saveSquad(squadData) {
+    const squads = this.getSquads();
+    if (!squadData.id) {
+      squadData.id = 'squad_' + Date.now();
+      squadData.created_at = new Date().toISOString();
+      squads.push(squadData);
+      this.logActivity('salvou', `Novo Squad "${squadData.name}" montado com sucesso`);
+    } else {
+      const idx = squads.findIndex(s => s.id === squadData.id);
+      if (idx >= 0) {
+        squads[idx] = { ...squads[idx], ...squadData, updated_at: new Date().toISOString() };
+        this.logActivity('salvou', `Squad "${squadData.name}" atualizado`);
+      } else {
+        squads.push(squadData);
+      }
+    }
+    this.set(STORAGE_KEYS.SQUADS, squads);
+    return squadData;
+  }
+
+  static deleteSquad(id) {
+    const squads = this.getSquads().filter(s => s.id !== id);
+    this.set(STORAGE_KEYS.SQUADS, squads);
+    this.logActivity('excluiu', `Squad ${id} removido`);
+    return true;
+  }
+
+  // --- BANCO DE DADOS ACOPLADO & SINCRONIZAÇÃO EM NUVEM (100% GRATUITO) ---
+  static getCloudConfig() {
+    return this.get(STORAGE_KEYS.CLOUD_CONFIG, {
+      enabled: false,
+      provider: 'supabase',
+      supabaseUrl: '',
+      supabaseAnonKey: '',
+      lastSync: null,
+      status: 'offline'
+    });
+  }
+
+  static saveCloudConfig(config) {
+    const current = this.getCloudConfig();
+    const updated = { ...current, ...config };
+    this.set(STORAGE_KEYS.CLOUD_CONFIG, updated);
+    this.logActivity('salvou', 'Configurações de sincronização em nuvem atualizadas');
+    return updated;
+  }
+
+  static exportFullDatabase() {
+    const data = {
+      app: 'Monte Sua Equipe',
+      version: '2.0.0-quantum',
+      author: 'Edvania Freitas (@ampliaperformance)',
+      exportedAt: new Date().toISOString(),
+      payload: {
+        settings: this.get(STORAGE_KEYS.SETTINGS),
+        branding: this.get(STORAGE_KEYS.BRANDING),
+        profiles: this.get(STORAGE_KEYS.PROFILES),
+        candidates: this.get(STORAGE_KEYS.CANDIDATES),
+        vacancies: this.get(STORAGE_KEYS.VACANCIES),
+        applications: this.get(STORAGE_KEYS.APPLICATIONS),
+        interviews: this.get(STORAGE_KEYS.INTERVIEWS),
+        experts: this.get(STORAGE_KEYS.EXPERTS),
+        squads: this.get(STORAGE_KEYS.SQUADS),
+        activity: this.get(STORAGE_KEYS.ACTIVITY),
+        search_logs: this.get(STORAGE_KEYS.SEARCH_LOGS)
+      }
+    };
+    return data;
+  }
+
+  static importFullDatabase(importedData) {
+    if (!importedData || !importedData.payload) {
+      throw new Error('Formato de arquivo de backup inválido.');
+    }
+    const p = importedData.payload;
+    if (p.settings) this.set(STORAGE_KEYS.SETTINGS, p.settings);
+    if (p.branding) this.set(STORAGE_KEYS.BRANDING, p.branding);
+    if (p.profiles) this.set(STORAGE_KEYS.PROFILES, p.profiles);
+    if (p.candidates) this.set(STORAGE_KEYS.CANDIDATES, p.candidates);
+    if (p.vacancies) this.set(STORAGE_KEYS.VACANCIES, p.vacancies);
+    if (p.applications) this.set(STORAGE_KEYS.APPLICATIONS, p.applications);
+    if (p.interviews) this.set(STORAGE_KEYS.INTERVIEWS, p.interviews);
+    if (p.experts) this.set(STORAGE_KEYS.EXPERTS, p.experts);
+    if (p.squads) this.set(STORAGE_KEYS.SQUADS, p.squads);
+    if (p.activity) this.set(STORAGE_KEYS.ACTIVITY, p.activity);
+    if (p.search_logs) this.set(STORAGE_KEYS.SEARCH_LOGS, p.search_logs);
+
+    this.logActivity('importou', 'Banco de dados restaurado integralmente a partir de arquivo de backup');
+    return true;
+  }
+
+  static resetDatabase() {
+    this.set(STORAGE_KEYS.CANDIDATES, INITIAL_SEED_CANDIDATES);
+    this.set(STORAGE_KEYS.VACANCIES, INITIAL_SEED_VACANCIES);
+    this.set(STORAGE_KEYS.EXPERTS, INITIAL_SEED_EXPERTS);
+    this.set(STORAGE_KEYS.APPLICATIONS, []);
+    this.set(STORAGE_KEYS.INTERVIEWS, []);
+    this.logActivity('salvou', 'Banco de dados reinicializado para os seeds de fábrica');
     return true;
   }
 }

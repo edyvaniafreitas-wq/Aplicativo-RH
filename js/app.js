@@ -13,6 +13,9 @@ import { MatchingEngine } from './modules/matching-engine.js';
 import { TalentSearchEngine } from './modules/talent-search.js';
 import { ProcessService, PIPELINE_STAGES } from './modules/processes.js';
 import { AdminService } from './modules/admin.js';
+import { QuantumSquadEngine } from './modules/quantum-squad.js';
+import { InteractiveFx } from './modules/interactive-fx.js';
+import { CloudDbConnector } from './modules/cloud-db.js';
 
 class AppController {
   constructor() {
@@ -79,6 +82,32 @@ class AppController {
       this.openPrivacyModal();
     });
 
+    // Efeitos Sonoros Futuristas
+    const btnSound = document.getElementById('btnToggleSound');
+    if (btnSound) {
+      btnSound.addEventListener('click', () => {
+        InteractiveFx.soundEnabled = !InteractiveFx.soundEnabled;
+        btnSound.innerHTML = `<i data-lucide="${InteractiveFx.soundEnabled ? 'volume-2' : 'volume-x'}"></i>`;
+        this.renderIcons();
+        if (InteractiveFx.soundEnabled) {
+          InteractiveFx.playChime();
+          this.showToast('Efeitos sonoros futuristas ativados.', 'success');
+        } else {
+          this.showToast('Efeitos sonoros silenciados.', 'info');
+        }
+      });
+    }
+
+    // Modal Banco de Dados Acoplado & Nuvem
+    const btnCloud = document.getElementById('btnOpenCloudDb');
+    if (btnCloud) {
+      btnCloud.addEventListener('click', () => {
+        this.openCloudDbModal();
+      });
+    }
+
+    this.bindCloudDbModalEvents();
+
     // Form Agendar Entrevista
     document.getElementById('formScheduleStage').addEventListener('submit', (e) => {
       e.preventDefault();
@@ -96,6 +125,133 @@ class AppController {
       e.preventDefault();
       this.handleNewExpertSubmit();
     });
+  }
+
+  openCloudDbModal() {
+    const modal = document.getElementById('modalCloudDb');
+    if (!modal) return;
+    const config = StorageService.getCloudConfig();
+    const urlInput = document.getElementById('cloudSupabaseUrl');
+    const keyInput = document.getElementById('cloudSupabaseKey');
+    if (urlInput) urlInput.value = config.supabaseUrl || '';
+    if (keyInput) keyInput.value = config.supabaseAnonKey || '';
+    modal.classList.add('show');
+    this.renderIcons();
+  }
+
+  bindCloudDbModalEvents() {
+    // Exportar Backup JSON
+    const btnExport = document.getElementById('btnExportFullDb');
+    if (btnExport) {
+      btnExport.addEventListener('click', () => {
+        InteractiveFx.playClick();
+        const data = StorageService.exportFullDatabase();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `backup-monte-sua-equipe-${Date.now()}.json`;
+        a.click();
+        this.showToast('Backup completo exportado com sucesso!', 'success');
+      });
+    }
+
+    // Restaurar Backup JSON
+    const btnTriggerImport = document.getElementById('btnTriggerImportDb');
+    const fileImport = document.getElementById('fileInputImportDb');
+    if (btnTriggerImport && fileImport) {
+      btnTriggerImport.addEventListener('click', () => fileImport.click());
+      fileImport.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          try {
+            const parsed = JSON.parse(evt.target.result);
+            StorageService.importFullDatabase(parsed);
+            InteractiveFx.playChime();
+            this.showToast('Banco de dados restaurado com sucesso!', 'success');
+            document.getElementById('modalCloudDb').classList.remove('show');
+            this.switchTab(this.currentTab);
+          } catch (err) {
+            this.showToast('Erro ao importar backup: ' + err.message, 'error');
+          }
+        };
+        reader.readAsText(file);
+      });
+    }
+
+    // Restaurar Dados Originais de Demonstração
+    const btnReset = document.getElementById('btnResetToFactory');
+    if (btnReset) {
+      btnReset.addEventListener('click', () => {
+        if (confirm('Deseja restaurar os dados de fábrica do aplicativo? Isso redefinirá candidatos, vagas e especialistas.')) {
+          StorageService.resetDatabase();
+          InteractiveFx.playChime();
+          this.showToast('Dados restaurados para o padrão de fábrica.', 'success');
+          document.getElementById('modalCloudDb').classList.remove('show');
+          this.switchTab(this.currentTab);
+        }
+      });
+    }
+
+    // Testar Conexão Supabase
+    const btnTest = document.getElementById('btnTestCloudConn');
+    if (btnTest) {
+      btnTest.addEventListener('click', async () => {
+        InteractiveFx.playClick();
+        const url = document.getElementById('cloudSupabaseUrl').value.trim();
+        const key = document.getElementById('cloudSupabaseKey').value.trim();
+        const feedback = document.getElementById('cloudConnStatusFeedback');
+        feedback.style.display = 'block';
+        feedback.innerHTML = '<span style="color: #2563eb;">Testando conectividade com Supabase...</span>';
+
+        const result = await CloudDbConnector.testConnection(url, key);
+        if (result.success) {
+          StorageService.saveCloudConfig({ supabaseUrl: url, supabaseAnonKey: key, enabled: true });
+          feedback.innerHTML = `<span style="color: #166534; font-weight: 700;">✓ ${result.message}</span>`;
+          InteractiveFx.playChime();
+          this.showToast('Supabase conectado com sucesso!', 'success');
+        } else {
+          feedback.innerHTML = `<span style="color: #b91c1c; font-weight: 700;">⚠ ${result.message}</span>`;
+        }
+      });
+    }
+
+    // Sincronizar Tudo para o Supabase
+    const btnSync = document.getElementById('btnSyncCloudNow');
+    if (btnSync) {
+      btnSync.addEventListener('click', async () => {
+        InteractiveFx.playScan();
+        const url = document.getElementById('cloudSupabaseUrl').value.trim();
+        const key = document.getElementById('cloudSupabaseKey').value.trim();
+        if (!url || !key) {
+          this.showToast('Informe a URL e Chave Anon do seu projeto Supabase primeiro.', 'error');
+          return;
+        }
+        this.showToast('Sincronizando dados com o Supabase...', 'info');
+        const res = await CloudDbConnector.syncAllToCloud(url, key);
+        if (res.success) {
+          InteractiveFx.playChime();
+          this.showToast(`Sincronização concluída! ${res.count} registros enviados à nuvem.`, 'success');
+        } else {
+          this.showToast('Erro na sincronização: ' + res.error, 'error');
+        }
+      });
+    }
+
+    // Copiar Script SQL do Banco
+    const btnCopySql = document.getElementById('btnCopySqlSchema');
+    if (btnCopySql) {
+      btnCopySql.addEventListener('click', () => {
+        InteractiveFx.playClick();
+        const sql = CloudDbConnector.getSupabaseSchemaSql();
+        navigator.clipboard.writeText(sql).then(() => {
+          this.showToast('Script SQL copiado para a área de transferência! Cole no SQL Editor do Supabase.', 'success');
+        }).catch(() => {
+          this.showToast('Falha ao copiar SQL. Permita o acesso à área de transferência.', 'error');
+        });
+      });
+    }
   }
 
   applyTheme() {
@@ -133,7 +289,7 @@ class AppController {
       tabs = [
         { id: 'jornada', label: 'Minha Jornada', icon: 'compass' },
         { id: 'curriculo', label: 'Meu Currículo', icon: 'file-text' },
-        { id: 'disc', label: 'Perfil Comportamental', icon: 'smile' },
+        { id: 'disc', label: 'Perfil DISC', icon: 'smile' },
         { id: 'analise', label: 'Análise do Currículo', icon: 'award' },
         { id: 'vagas', label: 'Vagas para Mim', icon: 'briefcase' },
         { id: 'convites', label: 'Convites & Entrevistas', icon: 'calendar' },
@@ -142,17 +298,19 @@ class AppController {
       ];
     } else if (this.currentRole === 'recruiter') {
       tabs = [
-        { id: 'rec_visao', label: 'Visão Geral', icon: 'layout-dashboard' },
+        { id: 'rec_visao', label: 'Visão Geral & Constelação', icon: 'sparkles' },
+        { id: 'rec_squad', label: 'Monte Seu Squad 360°', icon: 'users' },
         { id: 'rec_busca', label: 'Buscar Talentos (Voz & IA)', icon: 'search' },
         { id: 'rec_vagas', label: 'Minhas Vagas', icon: 'briefcase' },
         { id: 'rec_processos', label: 'Processos Seletivos (Kanban)', icon: 'columns-3' },
-        { id: 'vitrine', label: 'Vitrine de Especialistas', icon: 'sparkles' },
-        { id: 'rec_empresa', label: 'Minha Empresa', icon: 'building' }
+        { id: 'vitrine', label: 'Vitrine de Especialistas', icon: 'award' },
+        { id: 'rec_cloud', label: 'Banco & Nuvem Grátis', icon: 'database' }
       ];
     } else if (this.currentRole === 'admin') {
       tabs = [
         { id: 'adm_inicio', label: 'Início & Cuidados', icon: 'heart-handshake' },
         { id: 'adm_painel', label: 'Painel Executivo', icon: 'bar-chart-3' },
+        { id: 'adm_cloud', label: 'Banco de Dados & Nuvem', icon: 'database' },
         { id: 'adm_usuarios', label: 'Usuários & Aprovações', icon: 'users' },
         { id: 'adm_atividade', label: 'Trilha de Atividades', icon: 'activity' },
         { id: 'adm_buscas', label: 'Auditoria de Buscas', icon: 'search' },
@@ -169,6 +327,7 @@ class AppController {
 
     container.querySelectorAll('.sub-nav-item').forEach(btn => {
       btn.addEventListener('click', () => {
+        InteractiveFx.playClick();
         this.switchTab(btn.dataset.tab);
       });
     });
@@ -198,14 +357,17 @@ class AppController {
       
       // Visões do Recrutador / Empresa
       case 'rec_visao': this.renderRecruiterOverview(viewContainer); break;
+      case 'rec_squad': this.renderSquadSimulator(viewContainer); break;
       case 'rec_busca': this.renderRecruiterSearch(viewContainer); break;
       case 'rec_vagas': this.renderRecruiterVacancies(viewContainer); break;
       case 'rec_processos': this.renderRecruiterProcesses(viewContainer); break;
+      case 'rec_cloud': this.renderCloudDbView(viewContainer); break;
       case 'rec_empresa': this.renderRecruiterCompany(viewContainer); break;
 
       // Visões da Administradora
       case 'adm_inicio': this.renderAdminInicio(viewContainer); break;
       case 'adm_painel': this.renderAdminPainel(viewContainer); break;
+      case 'adm_cloud': this.renderCloudDbView(viewContainer); break;
       case 'adm_usuarios': this.renderAdminUsuarios(viewContainer); break;
       case 'adm_atividade': this.renderAdminAtividade(viewContainer); break;
       case 'adm_buscas': this.renderAdminBuscas(viewContainer); break;
@@ -218,6 +380,7 @@ class AppController {
     }
 
     this.renderIcons();
+    InteractiveFx.applyTiltCards(viewContainer);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -267,24 +430,67 @@ class AppController {
 
   renderCandidateJornada(container) {
     const candidate = StorageService.getCandidateById('cand_1') || StorageService.getCandidates()[0] || {};
-    const cvScore = candidate?.cvScore || 85;
+    const cvScore = candidate?.cvScore || 92;
+    const avatarUrl = candidate.avatar || 'assets/avatar-mariana.jpg';
 
     container.innerHTML = `
-      <div class="hero-welcome-banner">
-        <div class="hero-text-content">
-          <div class="hero-badge"><i data-lucide="sparkles"></i> Conexões que fazem a diferença</div>
-          <h2>Que bom ter você aqui, ${(candidate.full_name || 'Profissional').split(' ')[0]}!</h2>
-          <p>Seu próximo capítulo profissional começa com uma boa conversa. Explore oportunidades, valorize sua trajetória e conecte-se a empresas humanizadas.</p>
+      <section class="future-hero-section">
+        <div class="future-hero-content">
+          <div class="future-hero-badge">
+            <i data-lucide="sparkles"></i> Minha Jornada Profissional • Monte Sua Equipe
+          </div>
+          <h2 class="future-hero-title">
+            Bem-vinda, <span>${(candidate.full_name || 'Mariana').split(' ')[0]}</span>!
+          </h2>
+          <p class="future-hero-subtitle">
+            Seu perfil está 100% ativo e visível para empresas éticas e auditadas.
+            Explore oportunidades, fortaleça suas competências e acompanhe convites de entrevista em tempo real.
+          </p>
+
           <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-            <button class="btn-primary" onclick="window.appController.switchTab('curriculo')"><i data-lucide="file-up"></i> Atualizar Currículo</button>
-            <button class="btn-secondary" onclick="window.appController.switchTab('disc')"><i data-lucide="smile"></i> Fazer Teste DISC</button>
+            <button class="btn-primary" onclick="window.appController.switchTab('curriculo')">
+              <i data-lucide="file-up"></i> Atualizar Meu Currículo
+            </button>
+            <button class="btn-secondary" onclick="window.appController.switchTab('disc')">
+              <i data-lucide="smile"></i> Ver Perfil DISC
+            </button>
+            <button class="btn-secondary" onclick="window.appController.switchTab('vagas')">
+              <i data-lucide="briefcase"></i> Vagas para Mim
+            </button>
+          </div>
+
+          <div class="future-hero-metrics">
+            <div class="future-hero-metric-item">
+              <span class="future-hero-metric-val">${cvScore}/100</span>
+              <span class="future-hero-metric-lbl">Qualidade do CV</span>
+            </div>
+            <div class="future-hero-metric-item">
+              <span class="future-hero-metric-val">${candidate.disc?.primary || 'C'}/${candidate.disc?.secondary || 'S'}</span>
+              <span class="future-hero-metric-lbl">Estilo DISC</span>
+            </div>
+            <div class="future-hero-metric-item">
+              <span class="future-hero-metric-val">100%</span>
+              <span class="future-hero-metric-lbl">LGPD Protegida</span>
+            </div>
+            <div class="future-hero-metric-item">
+              <span class="future-hero-metric-val">3</span>
+              <span class="future-hero-metric-lbl">Vagas no Radar</span>
+            </div>
           </div>
         </div>
-        <div class="hero-graphic-box">
-          <div style="background: var(--surface); border: 1px solid var(--border-line); border-radius: var(--radius-banner); padding: 24px; box-shadow: var(--shadow-card); width: 100%;">
-            <h3 style="font-size: 1.1rem; margin-bottom: 12px;">Seu Estilo Comportamental (DISC)</h3>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-              <span>Predominante: <strong>${candidate.disc ? candidate.disc.primaryInfo.name : 'Pendente'}</strong></span>
+
+        <div class="future-hero-image-wrap" style="display: flex; align-items: center; justify-content: center; padding: 24px;">
+          <div style="position: relative; text-align: center;">
+            <img src="${avatarUrl}" alt="${candidate.full_name}" style="width: 180px; height: 180px; border-radius: 32px; object-fit: cover; border: 4px solid #ffffff; box-shadow: 0 16px 40px rgba(37, 99, 235, 0.2);">
+            <div style="margin-top: 14px;">
+              <span class="cloud-status-badge online" style="font-size: 0.82rem;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
+                Perfil Ativo na Comunidade
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
               <span class="mono-value" style="color: var(--blue-royal); font-weight: 700;">${candidate.disc ? candidate.disc.relative[candidate.disc.primary] + '%' : '0%'}</span>
             </div>
             <div style="display: flex; gap: 8px; margin-top: 14px;">
@@ -884,53 +1090,175 @@ Excel avançado, Power BI, Fluxo de caixa, Conciliação bancária, Contas a pag
     const candidates = StorageService.getCandidates();
     const vacancies = StorageService.getVacancies();
     const interviews = ProcessService.getInterviews();
+    const squads = StorageService.getSquads();
 
     container.innerHTML = `
-      <div class="hero-welcome-banner">
-        <div class="hero-text-content">
-          <div class="hero-badge"><i data-lucide="building-2"></i> Área da Empresa & Recrutamento</div>
-          <h2>Grandes equipes começam com boas conexões</h2>
-          <p>Encontre profissionais por conhecimentos, estilos comportamentais e compatibilidade com a cultura da sua empresa. Busque em linguagem natural ou por comando de voz.</p>
+      <!-- BANNER HERO LUMINOSO FUTURISTA -->
+      <section class="future-hero-section">
+        <div class="future-hero-content">
+          <div class="future-hero-badge">
+            <i data-lucide="sparkles"></i> Monte Sua Equipe • Por Edvania Freitas (@ampliaperformance)
+          </div>
+          <h2 class="future-hero-title">
+            Grandes Equipes Nascem de <span>Conexões Quânticas</span>
+          </h2>
+          <p class="future-hero-subtitle">
+            Plataforma aberta, sofisticada e gratuita para conexão entre profissionais e empresas.
+            Unimos inteligência de dados, análise de currículo em tempo real e avaliação comportamental DISC sem custos de APIs.
+          </p>
+
           <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-            <button class="btn-primary" onclick="window.appController.switchTab('rec_busca')"><i data-lucide="search"></i> Buscar Talentos (Voz/IA)</button>
-            <button class="btn-secondary" onclick="window.appController.openNewVacancyModal()"><i data-lucide="plus-circle"></i> Publicar Nova Vaga</button>
+            <button class="btn-primary" onclick="window.appController.switchTab('rec_squad')">
+              <i data-lucide="users"></i> Montar Squad 360°
+            </button>
+            <button class="btn-secondary" onclick="window.appController.switchTab('rec_busca')">
+              <i data-lucide="search"></i> Buscar por Voz / IA
+            </button>
+            <button class="btn-secondary" onclick="window.appController.openCloudDbModal()">
+              <i data-lucide="database"></i> Banco de Dados Acoplado
+            </button>
+          </div>
+
+          <div class="future-hero-metrics">
+            <div class="future-hero-metric-item">
+              <span class="future-hero-metric-val">${candidates.length}</span>
+              <span class="future-hero-metric-lbl">Profissionais Ativos</span>
+            </div>
+            <div class="future-hero-metric-item">
+              <span class="future-hero-metric-val">${vacancies.length}</span>
+              <span class="future-hero-metric-lbl">Vagas Publicadas</span>
+            </div>
+            <div class="future-hero-metric-item">
+              <span class="future-hero-metric-val">${squads.length}</span>
+              <span class="future-hero-metric-lbl">Squads Montados</span>
+            </div>
+            <div class="future-hero-metric-item">
+              <span class="future-hero-metric-val">100%</span>
+              <span class="future-hero-metric-lbl">Gratuito & LGPD</span>
+            </div>
           </div>
         </div>
-        <div class="hero-graphic-box">
-          <div style="background: var(--surface); border: 1px solid var(--border-line); border-radius: var(--radius-banner); padding: 24px; box-shadow: var(--shadow-card); width: 100%;">
-            <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Talentos Disponíveis na Comunidade</div>
-            <div class="mono-value" style="font-size: 2.2rem; font-weight: 800; color: var(--blue-royal);">${candidates.length} Profissionais</div>
-            <div style="font-size: 0.88rem; color: var(--text-muted); margin-top: 6px;">Perfis com histórico verificado e avaliação DISC completa.</div>
-          </div>
+
+        <div class="future-hero-image-wrap">
+          <img src="assets/hero-future.jpg" class="future-hero-image" alt="Monte Sua Equipe • Plataforma Executiva de Talentos">
+          <div class="future-hero-image-overlay"></div>
         </div>
+      </section>
+
+      <!-- CONSTELAÇÃO NEURAL INTERATIVA DE TALENTOS -->
+      <div class="future-glass-card" style="padding: 24px; margin-bottom: 28px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <h3 style="font-size: 1.25rem; display: flex; align-items: center; gap: 8px;">
+              <i data-lucide="activity" style="color: var(--blue-royal);"></i> Constelação Neural de Talentos & Vagas
+            </h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">
+              Visualização quântica de nós ativos. Clique em qualquer talento para abrir o dossiê executivo.
+            </p>
+          </div>
+          <span class="cloud-status-badge online">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
+            Telemetria em Tempo Real
+          </span>
+        </div>
+
+        <canvas id="recruiterConstellationCanvas" style="width: 100%; border-radius: 14px; cursor: pointer; display: block; border: 1px solid #e2e8f0;"></canvas>
       </div>
 
-      <!-- KPIs da Empresa -->
+      <!-- KPIs RÁPIDOS DA EMPRESA -->
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px;">
         <div class="kpi-metric-card">
           <div class="kpi-title">Vagas Abertas</div>
           <div class="kpi-number">${vacancies.length}</div>
-          <div class="kpi-delta">+1 nesta semana</div>
+          <div class="kpi-delta">Processos ativos</div>
         </div>
         <div class="kpi-metric-card">
-          <div class="kpi-title">Profissionais no Banco</div>
+          <div class="kpi-title">Profissionais no Radar</div>
           <div class="kpi-number">${candidates.length}</div>
-          <div class="kpi-delta">100% disponíveis</div>
+          <div class="kpi-delta">Perfis com DISC completo</div>
         </div>
         <div class="kpi-metric-card">
           <div class="kpi-title">Etapas Agendadas</div>
           <div class="kpi-number">${interviews.length}</div>
-          <div class="kpi-delta">Em andamento</div>
+          <div class="kpi-delta">Fluxo no Kanban</div>
         </div>
         <div class="kpi-metric-card">
-          <div class="kpi-title">Presenças Confirmadas</div>
-          <div class="kpi-number">${interviews.filter(i => i.status === 'confirmada').length}</div>
-          <div class="kpi-delta">100% de adesão</div>
+          <div class="kpi-title">Taxa de Presença</div>
+          <div class="kpi-number">100%</div>
+          <div class="kpi-delta">Google Agenda & .ICS</div>
         </div>
       </div>
 
-      <!-- Próximas Entrevistas -->
-      <div style="background: var(--surface); border: 1px solid var(--border-line); border-radius: var(--radius-banner); padding: 28px; box-shadow: var(--shadow-card); margin-bottom: 24px;">
+      <!-- TALENTOS EM DESTAQUE COM FOTOS E BADGES DISC -->
+      <div style="margin-bottom: 28px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <h3 style="font-size: 1.35rem; margin-bottom: 2px;">Talentos Disponíveis na Comunidade</h3>
+            <p style="font-size: 0.88rem; color: var(--text-muted); margin: 0;">Profissionais com histórico verificado, pontuação técnica e perfil comportamental mapeado.</p>
+          </div>
+          <button class="btn-secondary" onclick="window.appController.switchTab('rec_busca')">
+            Buscar Todos os Talentos &rarr;
+          </button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px;">
+          ${candidates.map(c => {
+            const avatarUrl = c.avatar || 'assets/avatar-mariana.jpg';
+            const primaryDisc = (c.disc && c.disc.primary) || 'C';
+            const secondaryDisc = (c.disc && c.disc.secondary) || 'S';
+            const cvScore = c.cvScore || 90;
+
+            return `
+              <div class="future-glass-card" style="padding: 22px;">
+                <div style="display: flex; gap: 16px; align-items: flex-start; margin-bottom: 14px;">
+                  <div class="candidate-avatar-wrap">
+                    <img src="${avatarUrl}" class="candidate-avatar-img" alt="${c.full_name}">
+                    <span class="candidate-status-dot" title="Disponível para novas oportunidades"></span>
+                  </div>
+                  <div style="flex: 1; min-width: 0;">
+                    <h4 style="font-size: 1.15rem; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${c.full_name}</h4>
+                    <div style="font-size: 0.85rem; color: #2563eb; font-weight: 600; margin-bottom: 4px;">${c.headline || 'Profissional'}</div>
+                    <div style="font-size: 0.78rem; color: var(--text-muted);">📍 ${c.city} - ${c.uf} • ${c.work_mode || 'Híbrido'}</div>
+                  </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 14px; margin-bottom: 14px;">
+                  <div>
+                    <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Score CV</span>
+                    <div style="font-size: 1.1rem; font-weight: 800; color: #1e40af;">${cvScore}/100</div>
+                  </div>
+                  <div>
+                    <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Perfil DISC</span>
+                    <div style="font-size: 0.92rem; font-weight: 800; color: #0f172a;">${primaryDisc}/${secondaryDisc}</div>
+                  </div>
+                  <div>
+                    ${this.renderTrafficLight('green', 'VERIFICADO')}
+                  </div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                  <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                    ${(c.skills || []).slice(0, 4).map(s => `<span style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; padding: 3px 8px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600;">${s}</span>`).join('')}
+                    ${(c.skills || []).length > 4 ? `<span style="font-size: 0.75rem; color: #64748b; padding-top: 2px;">+${(c.skills.length - 4)}</span>` : ''}
+                  </div>
+                </div>
+
+                <div style="display: flex; gap: 8px; justify-content: flex-end; border-top: 1px solid #e2e8f0; padding-top: 14px;">
+                  <button class="btn-secondary" style="font-size: 0.82rem; padding: 6px 12px;" onclick="window.appController.openDossierModal('${c.id}')">
+                    <i data-lucide="file-text"></i> Dossiê
+                  </button>
+                  <button class="btn-primary" style="font-size: 0.82rem; padding: 6px 12px;" onclick="window.appController.openScheduleModal('${c.id}', '${c.full_name}')">
+                    <i data-lucide="calendar"></i> Entrevista
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- PRÓXIMAS ETAPAS DO PROCESSO SELETIVO -->
+      <div class="future-glass-card" style="padding: 28px; margin-bottom: 24px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
           <h3 style="font-size: 1.25rem;">Próximas Entrevistas & Processos Ativos</h3>
           <button class="btn-secondary" onclick="window.appController.switchTab('rec_processos')">Ver Kanban Completo &rarr;</button>
@@ -938,7 +1266,7 @@ Excel avançado, Power BI, Fluxo de caixa, Conciliação bancária, Contas a pag
 
         <div style="display: flex; flex-direction: column; gap: 12px;">
           ${interviews.map(i => `
-            <div style="display: flex; justify-content: space-between; align-items: center; background: var(--surface-2); padding: 14px 18px; border-radius: 12px; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0; padding: 14px 18px; border-radius: 14px; flex-wrap: wrap; gap: 12px;">
               <div>
                 <strong style="font-size: 1rem; color: var(--text-main);">${i.candidate_name}</strong>
                 <div style="font-size: 0.85rem; color: var(--text-muted);">${i.vacancy_title} • Etapa: ${PIPELINE_STAGES.find(s => s.id === i.stage)?.name || i.stage}</div>
@@ -952,6 +1280,13 @@ Excel avançado, Power BI, Fluxo de caixa, Conciliação bancária, Contas a pag
         </div>
       </div>
     `;
+
+    // Inicia a animação da Constelação Neural Interativa
+    setTimeout(() => {
+      InteractiveFx.startConstellationCanvas('recruiterConstellationCanvas', candidates, (cand) => {
+        this.openDossierModal(cand.id);
+      });
+    }, 50);
   }
 
   renderRecruiterSearch(container) {
@@ -1192,6 +1527,449 @@ Excel avançado, Power BI, Fluxo de caixa, Conciliação bancária, Contas a pag
       this.showToast(`Candidato avançou para a etapa: ${PIPELINE_STAGES.find(s => s.id === updated.stage)?.name}!`, "success");
       this.renderRecruiterProcesses(document.getElementById('viewContainer'));
       this.renderIcons();
+    }
+  }
+
+  // ==============================================
+  // MÓDULO QUÂNTICO: SIMULADOR DE SQUADS 360° ("MONTE SUA EQUIPE")
+  // ==============================================
+
+  renderSquadSimulator(container) {
+    const squads = StorageService.getSquads();
+    const allCandidates = StorageService.getCandidates();
+    const currentSquad = squads[0] || {
+      id: 'squad_1',
+      name: 'Squad Alfa • Transformação Digital & Eficiência',
+      description: 'Time multidisciplinar focado em inovação, governança e expansão.',
+      members: [
+        { candidate_id: 'cand_1', role: 'Liderança Estratégica & FP&A' },
+        { candidate_id: 'cand_3', role: 'Governança & Compliance CLT' },
+        { candidate_id: 'cand_4', role: 'Expansão Comercial B2B' }
+      ]
+    };
+
+    const metrics = QuantumSquadEngine.calculateSquadMetrics(currentSquad.members, allCandidates);
+
+    // Definição dos 4 papéis essenciais de um squad equilibrado
+    const squadRoles = [
+      { key: 'lideranca', title: '👑 Liderança & Tomada de Decisão', discFocus: 'Foco D/I', defaultCandId: 'cand_4' },
+      { key: 'tecnico', title: '⚡ Finanças & Especialidade Técnica', discFocus: 'Foco Hard Skills', defaultCandId: 'cand_1' },
+      { key: 'governanca', title: '🛡️ Governança, Compliance & DP', discFocus: 'Foco C', defaultCandId: 'cand_3' },
+      { key: 'cultura', title: '🤝 Cultura, Sucesso do Cliente & CX', discFocus: 'Foco S/I', defaultCandId: 'cand_2' }
+    ];
+
+    container.innerHTML = `
+      <!-- Cabeçalho do Squad Simulator -->
+      <div class="future-glass-card" style="padding: 32px; margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+          <div>
+            <span class="future-hero-badge"><i data-lucide="sparkles"></i> Monte Sua Equipe • Simulador Quântico 360°</span>
+            <h2 style="font-size: 2.1rem; margin-bottom: 6px;">Monte Sua Equipe em Tempo Real</h2>
+            <p style="font-size: 1rem; color: var(--text-muted); max-width: 680px; margin: 0;">
+              Combine talentos reais com perfis comportamentais DISC complementares.
+              O algoritmo avalia em tempo real a harmonia de liderança, blindagem de governança e sinergia de execução.
+            </p>
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn-primary" id="btnExportSquadDossier">
+              <i data-lucide="file-check"></i> Exportar Dossiê de Squad (HTML)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Layout Grid: Slots do Squad + Painel de Telemetria Quântica -->
+      <div class="squad-builder-grid">
+        <!-- Coluna Esquerda: Slots de Membros do Squad -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="font-size: 1.3rem; margin: 0; display: flex; align-items: center; gap: 8px;">
+              <i data-lucide="layers" style="color: var(--blue-royal);"></i> Posições Estratégicas do Squad
+            </h3>
+            <span style="font-size: 0.82rem; color: var(--text-muted);">${currentSquad.members.length} membros alocados</span>
+          </div>
+
+          <div class="squad-slots-container">
+            ${squadRoles.map((roleDef, idx) => {
+              const currentMember = currentSquad.members[idx] || null;
+              const assignedCand = currentMember ? allCandidates.find(c => c.id === currentMember.candidate_id) : null;
+
+              if (assignedCand) {
+                const avatarUrl = assignedCand.avatar || 'assets/avatar-mariana.jpg';
+                const discP = (assignedCand.disc && assignedCand.disc.primary) || 'C';
+                const discS = (assignedCand.disc && assignedCand.disc.secondary) || 'S';
+
+                return `
+                  <div class="squad-slot-card filled">
+                    <div style="font-size: 0.78rem; font-weight: 700; color: #2563eb; text-transform: uppercase; margin-bottom: 10px;">
+                      ${roleDef.title}
+                    </div>
+                    <img src="${avatarUrl}" class="candidate-avatar-img" style="width: 56px; height: 56px; margin-bottom: 8px;" alt="${assignedCand.full_name}">
+                    <strong style="font-size: 1rem; color: #0f172a; margin-bottom: 2px;">${assignedCand.full_name}</strong>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">${assignedCand.headline || 'Especialista'}</div>
+                    <span style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; margin-bottom: 12px;">
+                      DISC: ${discP}/${discS} • CV: ${assignedCand.cvScore || 90}
+                    </span>
+
+                    <div style="display: flex; gap: 6px; width: 100%;">
+                      <select class="form-control squad-member-select" data-slot-index="${idx}" style="font-size: 0.8rem; padding: 6px;">
+                        ${allCandidates.map(c => `
+                          <option value="${c.id}" ${c.id === assignedCand.id ? 'selected' : ''}>${c.full_name} (DISC: ${c.disc?.primary || 'C'})</option>
+                        `).join('')}
+                      </select>
+                    </div>
+                  </div>
+                `;
+              } else {
+                return `
+                  <div class="squad-slot-card">
+                    <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">
+                      ${roleDef.title}
+                    </div>
+                    <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px;">
+                      Posição Vaga • ${roleDef.discFocus}
+                    </div>
+                    <select class="form-control squad-member-select" data-slot-index="${idx}" style="font-size: 0.82rem;">
+                      <option value="">+ Selecionar Profissional...</option>
+                      ${allCandidates.map(c => `
+                        <option value="${c.id}">${c.full_name} (${c.headline || 'Talento'})</option>
+                      `).join('')}
+                    </select>
+                  </div>
+                `;
+              }
+            }).join('')}
+          </div>
+        </div>
+
+        <!-- Coluna Direita: Telemetria de Sinergia e Balanço DISC -->
+        <div class="squad-telemetry-panel future-glass-card">
+          <div class="synergy-gauge-circle">
+            <div class="synergy-gauge-val">${metrics.synergyScore}%</div>
+            <div class="synergy-gauge-lbl">Sinergia</div>
+          </div>
+
+          <div style="text-align: center; margin-bottom: 18px;">
+            <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Arquétipo do Time</div>
+            <strong style="font-size: 0.95rem; color: #1e3a8a;">${metrics.archetype}</strong>
+          </div>
+
+          <!-- Radar Holográfico de Competências -->
+          <div style="margin-bottom: 18px;">
+            <div style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; text-align: center;">
+              Radar Holográfico do Squad
+            </div>
+            ${InteractiveFx.renderRadarSvg({
+              tecnico: Math.min(95, 60 + metrics.skillsCoverage.length * 3.5),
+              lideranca: Math.min(95, metrics.discBalance.D * 2.3),
+              governanca: Math.min(95, metrics.discBalance.C * 2.3),
+              resiliencia: Math.min(95, (metrics.discBalance.D + metrics.discBalance.S) * 1.3),
+              comunicacao: Math.min(95, metrics.discBalance.I * 2.4)
+            })}
+          </div>
+
+          <!-- Barras de Fatores DISC do Squad -->
+          <div style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">
+            Balanço Coletivo DISC:
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;">
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 2px;">
+                <span>Dominância (D)</span>
+                <strong>${metrics.discBalance.D}%</strong>
+              </div>
+              <div style="height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+                <div style="width: ${metrics.discBalance.D}%; height: 100%; background: #ef4444;"></div>
+              </div>
+            </div>
+
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 2px;">
+                <span>Influência (I)</span>
+                <strong>${metrics.discBalance.I}%</strong>
+              </div>
+              <div style="height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+                <div style="width: ${metrics.discBalance.I}%; height: 100%; background: #f59e0b;"></div>
+              </div>
+            </div>
+
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 2px;">
+                <span>Estabilidade (S)</span>
+                <strong>${metrics.discBalance.S}%</strong>
+              </div>
+              <div style="height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+                <div style="width: ${metrics.discBalance.S}%; height: 100%; background: #10b981;"></div>
+              </div>
+            </div>
+
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 2px;">
+                <span>Conformidade (C)</span>
+                <strong>${metrics.discBalance.C}%</strong>
+              </div>
+              <div style="height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+                <div style="width: ${metrics.discBalance.C}%; height: 100%; background: #3b82f6;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Diagnóstico de Gestão -->
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px;">
+            <div style="font-size: 0.78rem; font-weight: 700; color: #166534; margin-bottom: 4px;">✓ Força Competitiva</div>
+            <div style="font-size: 0.8rem; color: #475569; margin-bottom: 10px;">${metrics.strengths[0] || 'Equilíbrio funcional.'}</div>
+            <div style="font-size: 0.78rem; font-weight: 700; color: #991b1b; margin-bottom: 4px;">⚠ Ponto de Governança</div>
+            <div style="font-size: 0.8rem; color: #475569;">${metrics.blindspots[0] || 'Baixo risco comportamental.'}</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Eventos de alteração de membros no Squad
+    container.querySelectorAll('.squad-member-select').forEach(sel => {
+      sel.addEventListener('change', (e) => {
+        const slotIdx = parseInt(e.target.dataset.slotIndex, 10);
+        const candId = e.target.value;
+        const defaultRoles = [
+          'Liderança Estratégica & Decisão',
+          'Finanças & Especialidade Técnica',
+          'Governança & Compliance CLT',
+          'Cultura, Sucesso do Cliente & CX'
+        ];
+
+        if (candId) {
+          currentSquad.members[slotIdx] = {
+            candidate_id: candId,
+            role: defaultRoles[slotIdx] || 'Especialista'
+          };
+        } else {
+          currentSquad.members.splice(slotIdx, 1);
+        }
+
+        StorageService.saveSquad(currentSquad);
+        InteractiveFx.playChime();
+        this.renderSquadSimulator(container);
+        this.renderIcons();
+      });
+    });
+
+    // Evento de exportação do dossiê de squad
+    const btnExp = document.getElementById('btnExportSquadDossier');
+    if (btnExp) {
+      btnExp.addEventListener('click', () => {
+        InteractiveFx.playClick();
+        const html = QuantumSquadEngine.generateSquadReportHtml(currentSquad, allCandidates);
+        try {
+          const win = window.open('', '_blank');
+          if (win && win.document) {
+            win.document.open();
+            win.document.write(html);
+            win.document.close();
+            this.showToast('Dossiê do Squad aberto em nova aba para impressão.', 'success');
+            return;
+          }
+        } catch (e) {}
+
+        // Fallback: download direto do HTML
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `dossie-squad-${currentSquad.id}.html`;
+        a.click();
+        this.showToast('Dossiê do Squad baixado em HTML.', 'success');
+      });
+    }
+  }
+
+  // ==============================================
+  // VISÃO: BANCO DE DADOS ACOPLADO & NUVEM GRATUITA
+  // ==============================================
+
+  renderCloudDbView(container) {
+    const cands = StorageService.getCandidates();
+    const vacs = StorageService.getVacancies();
+    const apps = StorageService.getApplications();
+    const interviews = ProcessService.getInterviews();
+    const squads = StorageService.getSquads();
+    const cloudConfig = StorageService.getCloudConfig();
+
+    container.innerHTML = `
+      <!-- Topo da Gestão do Banco -->
+      <div class="future-glass-card" style="padding: 32px; margin-bottom: 24px;">
+        <span class="future-hero-badge"><i data-lucide="database"></i> Arquitetura Autônoma • Sem Custos</span>
+        <h2 style="font-size: 2rem; margin-bottom: 8px;">Banco de Dados Acoplado & Publicação Sem Custo</h2>
+        <p style="font-size: 1rem; color: var(--text-muted); max-width: 720px; margin: 0;">
+          Construído para funcionar sem custos para quem publica ou utiliza.
+          Todos os dados rodam diretamente no navegador através de IndexedDB reativo, com suporte nativo a sincronização em nuvem gratuita no Supabase.
+        </p>
+      </div>
+
+      <!-- Grid: Motor Local + Nuvem Supabase -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+        <!-- Card 1: Motor Local IndexedDB -->
+        <div class="cloud-db-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+            <h3 style="font-size: 1.25rem; margin: 0; color: #1e3a8a;">Motor Local Autônomo</h3>
+            <span class="cloud-status-badge local">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: #2563eb;"></span>
+              Ativo & Persistente
+            </span>
+          </div>
+
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 18px; line-height: 1.5;">
+            Os dados são persistidos permanentemente no dispositivo de quem acessa. Zero risco de perda ao fechar a janela ou reiniciar.
+          </p>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 10px; text-align: center;">
+              <div style="font-size: 1.4rem; font-weight: 800; color: #1d4ed8;">${cands.length}</div>
+              <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Candidatos</div>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 10px; text-align: center;">
+              <div style="font-size: 1.4rem; font-weight: 800; color: #1d4ed8;">${vacs.length}</div>
+              <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Vagas</div>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 10px; text-align: center;">
+              <div style="font-size: 1.4rem; font-weight: 800; color: #1d4ed8;">${squads.length}</div>
+              <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Squads</div>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 10px; text-align: center;">
+              <div style="font-size: 1.4rem; font-weight: 800; color: #1d4ed8;">${interviews.length}</div>
+              <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Entrevistas</div>
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button class="btn-primary" onclick="document.getElementById('btnExportFullDb').click()">
+              <i data-lucide="download"></i> Fazer Backup Completo (JSON)
+            </button>
+            <button class="btn-secondary" onclick="document.getElementById('btnTriggerImportDb').click()">
+              <i data-lucide="upload"></i> Restaurar Backup Anterior
+            </button>
+          </div>
+        </div>
+
+        <!-- Card 2: Sincronização em Nuvem Gratuita -->
+        <div class="cloud-db-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+            <h3 style="font-size: 1.25rem; margin: 0; color: #1e3a8a;">Sincronização em Nuvem (Supabase)</h3>
+            <span class="cloud-status-badge ${cloudConfig.enabled ? 'online' : 'local'}">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: ${cloudConfig.enabled ? '#10b981' : '#64748b'};"></span>
+              ${cloudConfig.enabled ? 'Conectado' : 'Opcional (Gratuito)'}
+            </span>
+          </div>
+
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 18px; line-height: 1.5;">
+            Conecte qualquer projeto gratuito do Supabase para manter celulares e computadores sincronizados em tempo real sem custos.
+          </p>
+
+          <div style="margin-bottom: 14px;">
+            <label class="form-label" style="font-size: 0.8rem;">Supabase Project URL</label>
+            <input type="url" id="cloudViewSupabaseUrl" class="form-control" value="${cloudConfig.supabaseUrl || ''}" placeholder="https://xyz.supabase.co" style="font-size: 0.85rem;">
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <label class="form-label" style="font-size: 0.8rem;">Supabase Anon Public Key</label>
+            <input type="password" id="cloudViewSupabaseKey" class="form-control" value="${cloudConfig.supabaseAnonKey || ''}" placeholder="eyJhbGciOi..." style="font-size: 0.85rem;">
+          </div>
+
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn-primary" id="btnCloudViewTest" style="font-size: 0.82rem; padding: 8px 14px;">
+              <i data-lucide="wifi"></i> Salvar & Testar
+            </button>
+            <button class="btn-secondary" id="btnCloudViewSync" style="font-size: 0.82rem; padding: 8px 14px;">
+              <i data-lucide="refresh-cw"></i> Sincronizar Agora
+            </button>
+            <button class="btn-secondary" id="btnCloudViewCopySql" style="font-size: 0.82rem; padding: 8px 14px;">
+              <i data-lucide="code-2"></i> Copiar Script SQL
+            </button>
+          </div>
+          <div id="cloudViewFeedback" style="margin-top: 10px; font-size: 0.82rem;"></div>
+        </div>
+      </div>
+
+      <!-- Guia de Publicação Gratuita -->
+      <div class="future-glass-card" style="padding: 28px;">
+        <h3 style="font-size: 1.25rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="rocket" style="color: var(--blue-royal);"></i> Como Publicar Esta Plataforma 100% de Graça
+        </h3>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 16px;">
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px;">
+            <div style="font-weight: 700; color: #1e40af; margin-bottom: 6px;">1. GitHub Pages (Recomendado)</div>
+            <p style="font-size: 0.84rem; color: #475569; line-height: 1.5; margin: 0;">
+              O repositório já conta com o fluxo de automação em <code style="background: #fff; padding: 1px 4px; border-radius: 4px;">.github/workflows/deploy.yml</code>. Basta subir seu código para o GitHub e seu site estará no ar em segundos com SSL grátis.
+            </p>
+          </div>
+
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px;">
+            <div style="font-weight: 700; color: #1e40af; margin-bottom: 6px;">2. Vercel / Cloudflare Pages</div>
+            <p style="font-size: 0.84rem; color: #475569; line-height: 1.5; margin: 0;">
+              O arquivo <code style="background: #fff; padding: 1px 4px; border-radius: 4px;">vercel.json</code> já está pronto na raiz do projeto. Conecte sua conta do GitHub na Vercel e aproveite CDN ultrarrápida mundial sem pagar 1 centavo.
+            </p>
+          </div>
+
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px;">
+            <div style="font-weight: 700; color: #1e40af; margin-bottom: 6px;">3. PWA (Aplicativo Instalável)</div>
+            <p style="font-size: 0.84rem; color: #475569; line-height: 1.5; margin: 0;">
+              Com o <code style="background: #fff; padding: 1px 4px; border-radius: 4px;">manifest.json</code> e <code style="background: #fff; padding: 1px 4px; border-radius: 4px;">sw.js</code>, os usuários podem clicar em "Instalar no Celular/Computador" e usar como aplicativo com ícone na tela inicial.
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Eventos na tela de Cloud DB
+    const btnTest = document.getElementById('btnCloudViewTest');
+    if (btnTest) {
+      btnTest.addEventListener('click', async () => {
+        InteractiveFx.playClick();
+        const url = document.getElementById('cloudViewSupabaseUrl').value.trim();
+        const key = document.getElementById('cloudViewSupabaseKey').value.trim();
+        const fb = document.getElementById('cloudViewFeedback');
+        fb.innerHTML = '<span style="color: #2563eb;">Testando conexão...</span>';
+        const res = await CloudDbConnector.testConnection(url, key);
+        if (res.success) {
+          StorageService.saveCloudConfig({ supabaseUrl: url, supabaseAnonKey: key, enabled: true });
+          fb.innerHTML = `<span style="color: #166534; font-weight: 700;">✓ ${res.message}</span>`;
+          InteractiveFx.playChime();
+          this.showToast('Supabase conectado com sucesso!', 'success');
+        } else {
+          fb.innerHTML = `<span style="color: #b91c1c; font-weight: 700;">⚠ ${res.message}</span>`;
+        }
+      });
+    }
+
+    const btnSync = document.getElementById('btnCloudViewSync');
+    if (btnSync) {
+      btnSync.addEventListener('click', async () => {
+        InteractiveFx.playScan();
+        const url = document.getElementById('cloudViewSupabaseUrl').value.trim();
+        const key = document.getElementById('cloudViewSupabaseKey').value.trim();
+        if (!url || !key) {
+          this.showToast('Preencha a URL e a chave do Supabase primeiro.', 'error');
+          return;
+        }
+        this.showToast('Sincronizando com a nuvem...', 'info');
+        const res = await CloudDbConnector.syncAllToCloud(url, key);
+        if (res.success) {
+          InteractiveFx.playChime();
+          this.showToast(`Sincronização concluída! ${res.count} registros enviados.`, 'success');
+        } else {
+          this.showToast('Erro: ' + res.error, 'error');
+        }
+      });
+    }
+
+    const btnSql = document.getElementById('btnCloudViewCopySql');
+    if (btnSql) {
+      btnSql.addEventListener('click', () => {
+        InteractiveFx.playClick();
+        const sql = CloudDbConnector.getSupabaseSchemaSql();
+        navigator.clipboard.writeText(sql).then(() => {
+          this.showToast('Script SQL copiado com sucesso!', 'success');
+        });
+      });
     }
   }
 
@@ -1657,38 +2435,45 @@ Excel avançado, Power BI, Fluxo de caixa, Conciliação bancária, Contas a pag
         <button class="btn-primary" onclick="window.appController.openNewExpertModal()"><i data-lucide="user-plus"></i> Apresente seu Trabalho</button>
       </div>
 
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
-        ${experts.map(e => `
-          <div style="background: var(--surface); border: 1px solid var(--border-line); border-radius: var(--radius-card); padding: 24px; box-shadow: var(--shadow-card); display: flex; flex-direction: column; justify-content: space-between;">
-            <div>
-              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-                <div>
-                  <h3 style="font-size: 1.25rem; margin-bottom: 2px;">${e.name}</h3>
-                  <div style="font-size: 0.88rem; color: var(--blue-royal); font-weight: 600;">${e.title}</div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px;">
+        ${experts.map(e => {
+          const avatarUrl = e.avatar || (e.id === 'exp_1' ? 'assets/avatar-edvania.jpg' : 'assets/avatar-carlos.jpg');
+
+          return `
+            <div class="future-glass-card" style="padding: 26px; display: flex; flex-direction: column; justify-content: space-between;">
+              <div>
+                <div style="display: flex; gap: 16px; align-items: flex-start; margin-bottom: 14px;">
+                  <img src="${avatarUrl}" alt="${e.name}" style="width: 72px; height: 72px; border-radius: 20px; object-fit: cover; border: 3px solid #ffffff; box-shadow: 0 8px 24px rgba(37, 99, 235, 0.15); flex-shrink: 0;">
+                  <div style="flex: 1; min-width: 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                      <h3 style="font-size: 1.25rem; margin-bottom: 2px;">${e.name}</h3>
+                      <div class="brand-icon-box" style="width: 32px; height: 32px; font-size: 0.85rem;"><i data-lucide="award"></i></div>
+                    </div>
+                    <div style="font-size: 0.86rem; color: #2563eb; font-weight: 600; line-height: 1.4;">${e.title}</div>
+                  </div>
                 </div>
-                <div class="brand-icon-box" style="width: 36px; height: 36px; font-size: 0.9rem;"><i data-lucide="award"></i></div>
+
+                <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px;">
+                  ${(e.formats || []).map(f => `<span style="background: #f5f3ff; color: #7c3aed; border: 1px solid #ddd6fe; font-size: 0.78rem; font-weight: 700; padding: 3px 10px; border-radius: 9999px;">${f}</span>`).join('')}
+                </div>
+
+                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5;">${e.about}</p>
+                
+                <div style="font-size: 0.85rem; color: var(--text-main); margin-bottom: 16px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 14px; border-radius: 12px;">
+                  <strong style="color: #1e3a8a;">Serviços & Atuação:</strong> ${e.services}
+                </div>
               </div>
 
-              <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px;">
-                ${(e.formats || []).map(f => `<span style="background: var(--lilac-soft); color: var(--lilac-accent); font-size: 0.78rem; font-weight: 700; padding: 3px 10px; border-radius: var(--radius-pill);">${f}</span>`).join('')}
-              </div>
-
-              <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5;">${e.about}</p>
-              
-              <div style="font-size: 0.85rem; color: var(--text-main); margin-bottom: 16px;">
-                <strong>Serviços:</strong> ${e.services}
+              <div style="border-top: 1px solid #e2e8f0; padding-top: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <span style="font-size: 0.82rem; color: var(--text-muted);">📍 ${e.city || 'Brasil'}</span>
+                <div style="display: flex; gap: 8px;">
+                  ${e.email ? `<a href="mailto:${e.email}" class="btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;"><i data-lucide="mail"></i> Contato</a>` : ''}
+                  ${e.linkedin ? `<a href="${e.linkedin}" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;"><i data-lucide="external-link"></i> LinkedIn</a>` : ''}
+                </div>
               </div>
             </div>
-
-            <div style="border-top: 1px solid var(--border-line); padding-top: 14px; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 0.82rem; color: var(--text-muted);">📍 ${e.city || 'Brasil'}</span>
-              <div style="display: flex; gap: 8px;">
-                ${e.email ? `<a href="mailto:${e.email}" class="btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;"><i data-lucide="mail"></i> Contato</a>` : ''}
-                ${e.linkedin ? `<a href="${e.linkedin}" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;"><i data-lucide="external-link"></i> LinkedIn</a>` : ''}
-              </div>
-            </div>
-          </div>
-        `).join('')}
+          `;
+        }).join('')}
       </div>
     `;
   }
